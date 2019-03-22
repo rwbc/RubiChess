@@ -620,15 +620,17 @@ static void tuneParameter(struct tuner *tn)
         if (tuned > 3)
             break;
 
-        int pbound[2] = { SHRT_MAX, SHRT_MIN };
-        int delta = 1;
-        int direction = 0; // direction=0: go right; delta > 0; direction=1: go right; delta
+        int pbound[2] = { -256, 256 };
+        int direction; // direction=0: go right; delta > 0; direction=1: go right; delta < 0
         int64_t v = tn->ev[tn->paramindex];
         int og = GETOGVAL(v);
         int mg = GETMGVAL(v);
         int eg = GETEGVAL(v);
         int lastp = (g ? (g & 1 ? mg : eg) : og);
+        lastp = max(-256, min(256, lastp));
+        int delta = lastp < 0 ? 1 : -1;
         int p = lastp + delta;
+        direction = (delta < 0);
         tn->ev[tn->paramindex] = (g ? (g & 1 ? VALUE3(og, lastp, eg) : VALUE3(og, mg, lastp)) : VALUE3(lastp, mg, eg));
         pmin = lastp;
         if (Emin < 0)
@@ -637,7 +639,7 @@ static void tuneParameter(struct tuner *tn)
         {
             tn->ev[tn->paramindex] = (g ? (g & 1 ? VALUE3(og, p, eg) : VALUE3(og, mg, p)) : VALUE3(p, mg, eg));
             Error = TexelEvalError(tn);
-            if (Error >= Emin)
+            if (Error >= Emin || abs(p) >= 256)
             {
                 direction = (p > pmin ? 1 : 0);
                 pbound[direction] = p;
@@ -653,7 +655,19 @@ static void tuneParameter(struct tuner *tn)
                 delta *= 2;
                 p = p + delta;
             }
-            p = max(-256, min(256, p));
+            if (p >= 256)
+            {
+                p = 256;
+                delta = -1;
+                direction = 1;
+            }
+            if (p <= -256)
+            {
+                p = -256;
+                delta = 1;
+                direction = 0;
+            }
+            printf("%3d: [%d,%d] pmin=%d Emin=%.6f p=%d E=%.6f delta=%d direction=%d\n", tn->paramindex, pbound[0], pbound[1], pmin, Emin, p, Error, delta, direction);
         } while (abs(pbound[1] - pbound[0]) > 2);
         tn->ev[tn->paramindex] = (g ? (g & 1 ? VALUE3(og, pmin, eg) : VALUE3(og, mg, pmin)) : VALUE3(pmin, mg, eg));
 
