@@ -460,7 +460,14 @@ int chessposition::getValue()
         return SCOREDRAW;
 
     int score = TAPEREDANDSCALEDEVAL(positionscore, ph, sc);
+#if 0
+    int score2 = TAPEREDANDSCALEDEVALNEW(positionscore, ph, sc);
 
+    if (abs(score - score2) > 2)
+    {
+        printf("%llx OG=%d MG=%d EG=%d scoreold=%d scorenew=%d ph=%d sc=%d\n", positionscore, GETOGVAL(positionscore), GETMGVAL(positionscore), GETEGVAL(positionscore), score, score2, ph, sc);
+    }
+#endif
     return score;
 }
 

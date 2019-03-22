@@ -205,15 +205,19 @@ public:
 #define VALUEG(g, e, v) ((g) ? )
 #define EVAL(e, f) ((e).addGrad(f), (e) * (f))
 #else
-#define VALUE(m, e) ((int64_t)((uint64_t)(m) << 16) + (e))
+#define VALUE3(o, m, e) ((int64_t)((uint64_t)(o) << 32) + (int64_t)((uint64_t)(m) << 16) + (e))
+#define VALUE(o, e) VALUE3(o, ((o) + (e)) / 2, (e))
+
 #define EVAL(e, f) ((e) * (f))
 typedef const int64_t eval;
 #endif
-#define GETMGVAL(v) ((int16_t)(((uint64_t)(v) + 0x8000) >> 16))
+#define GETOGVAL(v) ((int16_t)(((uint64_t)(v) + 0x80000000) >> 32))
+#define GETMGVAL(v) ((int16_t)(((uint32_t)((v)) + 0x8000) >> 16))
 #define GETEGVAL(v) ((int16_t)((v) & 0xffff))
 #define PSQTINDEX(i,s) ((s) ? (i) : (i) ^ 0x38)
 
-#define TAPEREDANDSCALEDEVAL(s, p, c) ((GETMGVAL(s) * (256 - (p)) + GETEGVAL(s) * (p) * (c) / SCALE_NORMAL) / 256)
+#define TAPEREDANDSCALEDEVAL(s, p, c) ((((p) >= 128 ? GETMGVAL(s) * (256 - (p)) + GETEGVAL(s) * ((p) - 128) : GETOGVAL(s) * (128 - (p)) + GETMGVAL(s) * (p)) * (c) / SCALE_NORMAL) / 128)
+#define TAPEREDANDSCALEDEVALOLD(s, p, c) ((GETOGVAL(s) * (256 - (p)) + GETEGVAL(s) * (p) * (c) / SCALE_NORMAL) / 256)
 
 #define NUMOFEVALPARAMS (2*5*4 + 5 + 4*8 + 8 + 5 + 4*28 + 2 + 7 + 1 + 7 + 6 + 7*64)
 struct evalparamset {
