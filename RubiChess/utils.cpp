@@ -653,6 +653,7 @@ static void tuneParameter(struct tuner *tn)
                 delta *= 2;
                 p = p + delta;
             }
+            p = max(-256, min(256, p));
         } while (abs(pbound[1] - pbound[0]) > 2);
         tn->ev[tn->paramindex] = (g ? (g & 1 ? VALUE3(og, pmin, eg) : VALUE3(og, mg, pmin)) : VALUE3(pmin, mg, eg));
 
