@@ -189,20 +189,20 @@ struct pawnhashentry;
 //
 #ifdef EVALTUNE
 class eval {
-    int32_t v;
+    int64_t v;
     int g;
 public:
     eval() { v = g = 0; }
-    eval(int m, int e) {
-        v = ((int32_t)((uint32_t)(m) << 16) + (e)); g = 0;
+    eval(int o, int m, int e) {
+        v = ((int64_t)((uint64_t)(o) << 32) + (int64_t)((uint64_t)(m) << 16) + (e)); g = 0;
     }
-    operator int() const { return v; }
+    operator int64_t() const { return v; }
     void addGrad(int i) { this->g += i; }
     int getGrad() { return this->g; }
     void resetGrad() { g = 0; }
 };
-#define VALUE(m, e) eval(m, e)
-#define VALUEG(g, e, v) ((g) ? )
+#define VALUE3(o, m, e) eval(o, m, e)
+#define VALUE(o, e) eval(o, ((o) + (e)) / 2, e)
 #define EVAL(e, f) ((e).addGrad(f), (e) * (f))
 #else
 #define VALUE3(o, m, e) ((int64_t)((uint64_t)(o) << 32) + (int64_t)((uint64_t)(m) << 16) + (e))
@@ -925,7 +925,7 @@ public:
     void getPositionTuneSet(positiontuneset *p, evalparam *e);
     void copyPositionTuneSet(positiontuneset *from, evalparam *efrom, positiontuneset *to, evalparam *eto);
     string getGradientString();
-    int getGradientValue(positiontuneset *p, evalparam *e);
+    int64_t getGradientValue(positiontuneset *p, evalparam *e);
 #endif
     bool w2m();
     void BitboardSet(int index, PieceCode p);

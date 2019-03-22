@@ -72,9 +72,9 @@ string chessposition::getGradientString()
     return s;
 }
 
-int chessposition::getGradientValue(positiontuneset *p, evalparam *e)
+int64_t chessposition::getGradientValue(positiontuneset *p, evalparam *e)
 {
-    int v = 0;
+    int64_t v = 0;
     for (int i = 0; i < p->num; i++)
     {
         v += *tps.ev[e->index] * e->g;
