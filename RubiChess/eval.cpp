@@ -158,9 +158,9 @@ void registeralltuners(chessposition *pos)
 
 
 //FIXME: TRACE mode was completely remove at eval rewrite; should probably to be implemented again
-int chessposition::getPawnAndKingValue(pawnhashentry **entry)
+int64_t chessposition::getPawnAndKingValue(pawnhashentry **entry)
 {
-    int val = 0;
+    int64_t val = 0;
     int index;
 
     bool hashexist = pwnhsh->probeHash(pawnhash, entry);
@@ -292,7 +292,7 @@ int chessposition::getPawnAndKingValue(pawnhashentry **entry)
 }
 
 
-int chessposition::getPositionValue()
+int64_t chessposition::getPositionValue()
 {
     pawnhashentry *phentry;
     int index;
@@ -301,7 +301,7 @@ int chessposition::getPositionValue()
     U64 occupied = occupied00[0] | occupied00[1];
     memset(attackedBy, 0, sizeof(attackedBy));
 
-    int result = EVAL(eps.eTempo, S2MSIGN(state & S2MMASK));
+    int64_t result = EVAL(eps.eTempo, S2MSIGN(state & S2MMASK));
 
     result += getPawnAndKingValue(&phentry);
 
@@ -452,7 +452,7 @@ int chessposition::getValue()
     resetTuner();
 #endif
     ph = phase();
-    int positionscore = getPositionValue();
+    int64_t positionscore = getPositionValue();
     int sideToScale = positionscore > SCOREDRAW ? WHITE : BLACK;
     sc = getScaling(sideToScale);
 

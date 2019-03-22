@@ -205,11 +205,11 @@ public:
 #define VALUEG(g, e, v) ((g) ? )
 #define EVAL(e, f) ((e).addGrad(f), (e) * (f))
 #else
-#define VALUE(m, e) ((int32_t)((uint32_t)(m) << 16) + (e))
+#define VALUE(m, e) ((int64_t)((uint64_t)(m) << 16) + (e))
 #define EVAL(e, f) ((e) * (f))
-typedef const int32_t eval;
+typedef const int64_t eval;
 #endif
-#define GETMGVAL(v) ((int16_t)(((uint32_t)(v) + 0x8000) >> 16))
+#define GETMGVAL(v) ((int16_t)(((uint64_t)(v) + 0x8000) >> 16))
 #define GETEGVAL(v) ((int16_t)((v) & 0xffff))
 #define PSQTINDEX(i,s) ((s) ? (i) : (i) ^ 0x38)
 
@@ -477,7 +477,7 @@ typedef struct pawnhashentry {
     int semiopen[2];
     U64 attacked[2];
     U64 attackedBy2[2];
-    int32_t value;
+    int64_t value;
 } S_PAWNHASHENTRY;
 
 
@@ -953,8 +953,8 @@ public:
     bool moveGivesCheck(uint32_t c);  // simple and imperfect as it doesn't handle special moves and cases (mainly to avoid pruning of important moves)
     bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
     uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
-    int getPositionValue();
-    int getPawnAndKingValue(pawnhashentry **entry);
+    int64_t getPositionValue();
+    int64_t getPawnAndKingValue(pawnhashentry **entry);
     int getValue();
     int getScaling(int col);
 
