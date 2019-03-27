@@ -667,7 +667,7 @@ static void tuneParameter(struct tuner *tn)
                 delta = 1;
                 direction = 0;
             }
-            printf("%3d: [%d,%d] pmin=%d Emin=%.6f p=%d E=%.6f delta=%d direction=%d\n", tn->paramindex, pbound[0], pbound[1], pmin, Emin, p, Error, delta, direction);
+            //printf("%3d: [%d,%d] pmin=%d Emin=%.6f p=%d E=%.6f delta=%d direction=%d\n", tn->paramindex, pbound[0], pbound[1], pmin, Emin, p, Error, delta, direction);
         } while (abs(pbound[1] - pbound[0]) > 2);
         tn->ev[tn->paramindex] = (g ? (g & 1 ? VALUE3(og, pmin, eg) : VALUE3(og, mg, pmin)) : VALUE3(pmin, mg, eg));
 

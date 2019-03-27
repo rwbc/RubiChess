@@ -335,57 +335,57 @@ struct evalparamset {
     };
 #else
     eval ePawnstormblocked[4][5] = {
-        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  20, -14,   6), VALUE3(  25,   5, -19), VALUE3(  29,   7,  -7)  },
-        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   9,  -7, -21), VALUE3(  31,   6, -23), VALUE3(  -1,   5, -12)  },
-        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  13,   0, -19), VALUE3( -13,   4,  -9), VALUE3(  -7,   0,  -1)  },
-        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3( -20,  -7, -12), VALUE3( -11,   4,  -7), VALUE3(   8,   0,   1)  }
+        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  12,  -2, -16), VALUE3(  28,   5, -17), VALUE3(  29,   7, -15)  },
+        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   8,  -7, -22), VALUE3(  34,   6, -22), VALUE3(   3,  -1,  -5)  },
+        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  18,   0, -19), VALUE3(  -6,  -2,   1), VALUE3(  -8,  -1,   5)  },
+        {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3( -14, -10,  -6), VALUE3(  -9,   0,   8), VALUE3(   5,   2,   0)  }
     };
     eval ePawnstormfree[4][5] = {
-        {  VALUE3( 227,   1,  36), VALUE3( 103,  40,  61), VALUE3( -31,   3,  29), VALUE3( -10,   2,   5), VALUE3(   0,  -1,   7)  },
-        {  VALUE3( -21,  17,  40), VALUE3( -41,  15,  40), VALUE3( -33, -17,  19), VALUE3( -12,   5,   2), VALUE3(   3,   8,  -2)  },
-        {  VALUE3( -62,   8,  36), VALUE3(  43,  10,  40), VALUE3( -16,  -9,   9), VALUE3( -17,   3,  -6), VALUE3(  -6,   5,  -6)  },
-        {  VALUE3(-256,  44,  12), VALUE3(  92,  21,  48), VALUE3(  -9,  -6,   3), VALUE3( -18,   1,  -1), VALUE3( -14,   0,  11)  }
+        {  VALUE3( -21,  11,  44), VALUE3(  44,  50,  57), VALUE3( -30,   0,  31), VALUE3(  -8,  -1,   5), VALUE3(  -1,   0,   1)  },
+        {  VALUE3( -24,  15,  55), VALUE3( -36,   6,  49), VALUE3( -52, -17,  18), VALUE3(  -4,   0,   5), VALUE3(   6,   5,   5)  },
+        {  VALUE3( -44,   1,  46), VALUE3( -25,   9,  43), VALUE3( -24,  -7,   9), VALUE3(  -9,  -2,   4), VALUE3(  -3,   4,  11)  },
+        {  VALUE3(  33,  30,  27), VALUE3(  -9,  19,  48), VALUE3(  -9,  -6,  -3), VALUE3( -18,  -4,   9), VALUE3( -13,  -1,  11)  }
     };
-    eval ePawnpushthreatbonus =  VALUE3(  19,  16,  19);
-    eval eSafepawnattackbonus =  VALUE3(  62,  57, -11);
-    eval eHangingpiecepenalty =  VALUE3( -26, -24, -49);
-    eval eKingshieldbonus =  VALUE3(  13,   5,  -2);
-    eval eTempo =  VALUE3(  27,  31,  21);
+    eval ePawnpushthreatbonus =  VALUE3(  19,  16,  13);
+    eval eSafepawnattackbonus =  VALUE3(  63,  45,  28);
+    eval eHangingpiecepenalty =  VALUE3( -23, -29, -36);
+    eval eKingshieldbonus =  VALUE3(  13,   4,  -2);
+    eval eTempo =  VALUE3(  28,  27,  26);
     eval ePassedpawnbonus[4][8] = {
-        {  VALUE3(   0,   0,   0), VALUE3(   8,   2,  11), VALUE3(  -2,   2,   6), VALUE3(  10,   9,  30), VALUE3(  33,  34,  36), VALUE3(  51,  86,  49), VALUE3( -17, 120,  44), VALUE3(   0,   0,   0)  },
-        {  VALUE3(   0,   0,   0), VALUE3( -20, -11,   2), VALUE3(  -8,  -7,  31), VALUE3(  -2,  -4,  33), VALUE3(  16,  15,  36), VALUE3(  30,  39,  16), VALUE3( -12,   6,  15), VALUE3(   0,   0,   0)  },
-        {  VALUE3(   0,   0,   0), VALUE3(   2,   1,  10), VALUE3(   6,   0,  16), VALUE3(  26,   6,  52), VALUE3(  34,  45,  96), VALUE3(  67, 109, 217), VALUE3( 175, 170, 256), VALUE3(   0,   0,   0)  },
-        {  VALUE3(   0,   0,   0), VALUE3(   4,   7,   9), VALUE3( -11,   7,  19), VALUE3(   3,  17,  33), VALUE3(  19,  27,  60), VALUE3(  49,  63,  74), VALUE3( -61,  67,  33), VALUE3(   0,   0,   0)  }
+        {  VALUE3(   0,   0,   0), VALUE3(   8,   5,   2), VALUE3(  -2,   2,   6), VALUE3(   7,  14,  22), VALUE3(  33,  34,  36), VALUE3(  71,  71,  72), VALUE3(  47,  78, 109), VALUE3(   0,   0,   0)  },
+        {  VALUE3(   0,   0,   0), VALUE3( -22, -10,   1), VALUE3( -12,   0,  11), VALUE3(  -8,   5,  18), VALUE3(  15,  19,  24), VALUE3(  33,  39,  45), VALUE3( -18,   6,  30), VALUE3(   0,   0,   0)  },
+        {  VALUE3(   0,   0,   0), VALUE3(   3,   4,   6), VALUE3(   4,   6,   9), VALUE3(   8,  22,  36), VALUE3(  23,  55,  87), VALUE3(  66, 129, 193), VALUE3( 112, 201, 290), VALUE3(   0,   0,   0)  },
+        {  VALUE3(   0,   0,   0), VALUE3(  10,   7,   5), VALUE3(  -5,   7,  19), VALUE3(   2,  17,  33), VALUE3(  12,  32,  53), VALUE3(  53,  63,  74), VALUE3(  51,  56,  61), VALUE3(   0,   0,   0)  }
     };
-    eval eAttackingpawnbonus[8] = {  VALUE3(   0,   0,   0), VALUE3( -71, -68, -43), VALUE3( -28, -36, -16), VALUE3( -19, -13,  -2), VALUE3( -10,  -1,   9), VALUE3(   8,  24,  46), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  };
+    eval eAttackingpawnbonus[8] = {  VALUE3(   0,   0,   0), VALUE3( -65, -63, -62), VALUE3( -29, -31, -33), VALUE3( -19, -11,  -3), VALUE3( -10,   0,  10), VALUE3(   9,  24,  40), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  };
     eval eIsolatedpawnpenalty =  VALUE3( -14, -12, -11);
-    eval eDoublepawnpenalty =  VALUE3( -12, -13, -29);
-    eval eConnectedbonus =  VALUE3(   7,   1,  -1);
-    eval eBackwardpawnpenalty =  VALUE3(  -9,  -8, -12);
-    eval eDoublebishopbonus =  VALUE3(  61,  46,  56);
+    eval eDoublepawnpenalty =  VALUE3( -10, -16, -23);
+    eval eConnectedbonus =  VALUE3(   7,   1,  -4);
+    eval eBackwardpawnpenalty =  VALUE3(  -9,  -9,  -9);
+    eval eDoublebishopbonus =  VALUE3(  61,  48,  35);
     eval eMobilitybonus[4][28] = {
-        {  VALUE3(  18, -48, -99), VALUE3(  37,   1, -34), VALUE3(  49,  18,  -7), VALUE3(  54,  27,   9), VALUE3(  60,  34,  10), VALUE3(  66,  41,  22), VALUE3(  72,  43,  21), VALUE3(  78,  45,  22),
-           VALUE3(  83,  44,   6), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
+        {  VALUE3(  17, -39, -96), VALUE3(  37,   4, -28), VALUE3(  49,  20,  -9), VALUE3(  54,  27,   0), VALUE3(  59,  34,  10), VALUE3(  65,  43,  21), VALUE3(  71,  43,  15), VALUE3(  75,  45,  16),
+           VALUE3(  77,  41,   6), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  },
-        {  VALUE3(  19, -22, -65), VALUE3(  28,   0, -32), VALUE3(  46,  18,  -2), VALUE3(  51,  26,   4), VALUE3(  63,  37,  17), VALUE3(  69,  43,  17), VALUE3(  72,  49,  20), VALUE3(  72,  50,  33),
-           VALUE3(  74,  55,  30), VALUE3(  76,  57,  32), VALUE3(  71,  63,  25), VALUE3(  84,  63,  21), VALUE3(  90,  67,  34), VALUE3(  55,  79, -15), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
+        {  VALUE3(  19, -23, -66), VALUE3(  29,  -1, -32), VALUE3(  46,  18,  -9), VALUE3(  51,  26,   1), VALUE3(  63,  36,  10), VALUE3(  68,  42,  16), VALUE3(  72,  47,  22), VALUE3(  72,  50,  29),
+           VALUE3(  73,  51,  30), VALUE3(  74,  53,  32), VALUE3(  74,  53,  32), VALUE3(  80,  51,  23), VALUE3(  75,  55,  35), VALUE3(  61,  38,  15), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  },
-        {  VALUE3( -58, -38,  27), VALUE3(  14,   5,   8), VALUE3(  28,  30,  30), VALUE3(  29,  35,  52), VALUE3(  31,  43,  56), VALUE3(  36,  44,  71), VALUE3(  38,  49,  75), VALUE3(  45,  52,  67),
-           VALUE3(  44,  56,  76), VALUE3(  45,  63,  78), VALUE3(  51,  64,  80), VALUE3(  50,  64,  85), VALUE3(  43,  68,  91), VALUE3(  62,  67,  89), VALUE3(  39,  58, 103), VALUE3(   0,   0,   0),
+        {  VALUE3( -58, -30,  -3), VALUE3(  14,   5,  -4), VALUE3(  28,  31,  34), VALUE3(  29,  34,  40), VALUE3(  31,  40,  50), VALUE3(  36,  44,  52), VALUE3(  37,  47,  57), VALUE3(  44,  52,  61),
+           VALUE3(  44,  54,  64), VALUE3(  45,  60,  75), VALUE3(  50,  61,  73), VALUE3(  48,  62,  77), VALUE3(  43,  64,  85), VALUE3(  47,  65,  83), VALUE3(  43,  63,  83), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  },
-        {  VALUE3(-256,-256,  83), VALUE3(   7, -77, -94), VALUE3(  -5,   0, 256), VALUE3(   0,  -7,-256), VALUE3(  -2,  21, 255), VALUE3(   0,  41, 193), VALUE3(   2,  42, 255), VALUE3(   7,  49, 248),
-           VALUE3(  10,  52, 256), VALUE3(  13,  60, 227), VALUE3(  14,  73, 188), VALUE3(  16,  75, 184), VALUE3(  17,  80, 172), VALUE3(  18,  84, 201), VALUE3(  16,  92, 187), VALUE3(  20,  96, 185),
-           VALUE3(  19, 100, 192), VALUE3(  25,  95, 189), VALUE3(  19, 103, 164), VALUE3(  18, 106, 179), VALUE3(  35, 112, 186), VALUE3(  34, 111, 205), VALUE3(  58, 132, 161), VALUE3( -74, 133, 156),
-           VALUE3(  55, 145, 190), VALUE3(  70, 168, 126), VALUE3( 255, 187, 107), VALUE3(  59, 138, 175)  }
+        {  VALUE3(-4097,-2007,  83), VALUE3(   5, -44, -94), VALUE3(  -5,  -6,  -7), VALUE3(   1,  -8, -18), VALUE3(  -2,  19,  40), VALUE3(   1,  36,  72), VALUE3(   3,  41,  80), VALUE3(   7,  47,  87),
+           VALUE3(  10,  49,  88), VALUE3(  13,  56, 100), VALUE3(  14,  67, 121), VALUE3(  17,  70, 123), VALUE3(  17,  77, 138), VALUE3(  18,  78, 138), VALUE3(  16,  86, 156), VALUE3(  21,  88, 156),
+           VALUE3(  21,  91, 162), VALUE3(  24,  89, 155), VALUE3(  25,  93, 162), VALUE3(  17,  98, 179), VALUE3(  46, 100, 155), VALUE3(  80, 111, 143), VALUE3(  59, 109, 159), VALUE3(  83, 112, 142),
+           VALUE3(  88, 122, 157), VALUE3( 125, 124, 124), VALUE3( 139, 133, 127), VALUE3(  66, 116, 166)  }
     };
-    eval eSlideronfreefilebonus[2] = {  VALUE3(  22,  14,  11), VALUE3(  43,  22,   2)  };
+    eval eSlideronfreefilebonus[2] = {  VALUE3(  22,  15,   8), VALUE3(  43,  22,   2)  };
     eval eMaterialvalue[7] = {  VALUE3(   0,   0,   0), VALUE3( 100, 100, 100), VALUE3( 314, 314, 314), VALUE3( 314, 314, 314), VALUE3( 483, 483, 483), VALUE3( 913, 913, 913), VALUE3(32509,32509,32509)  };
-    eval eWeakkingringpenalty =  VALUE3( -12,  -3,   4);
-    eval eKingattackweight[7] = {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   6,   3,   0), VALUE3(   6,   3,  -2), VALUE3(   7,   1,   1), VALUE3(   3,   6,  -4), VALUE3(   0,   0,   0)  };
-    eval eSafecheckbonus[6] = {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  80,  58,  16), VALUE3(  15,  50,  16), VALUE3(  94,  47,   1), VALUE3(  20,  74,  20)  };
+    eval eWeakkingringpenalty =  VALUE3( -12,  -1,   2);
+    eval eKingattackweight[7] = {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   6,   3,   0), VALUE3(   6,   3,  -2), VALUE3(   6,   1,   1), VALUE3(   3,   7,  -5), VALUE3(   0,   0,   0)  };
+    eval eSafecheckbonus[6] = {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(  81,  61,  12), VALUE3(  15,  52,  15), VALUE3(  91,  47,   2), VALUE3(  20,  74,  16)  };
     eval ePsqt[7][64] = {
         {  VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
@@ -396,54 +396,55 @@ struct evalparamset {
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0),
            VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0), VALUE3(   0,   0,   0)  },
         {  VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999),
-           VALUE3( 122, 112,  98), VALUE3(  80, 102,  89), VALUE3(  56,  97,  53), VALUE3( 121,  50,  62), VALUE3( 117,  63,  43), VALUE3(  78,  92,  72), VALUE3(  17,  39, 113), VALUE3( 136,  60, 117),
-           VALUE3( -15,  17,  38), VALUE3(  -8,  16,  33), VALUE3( -10,   6,  11), VALUE3( -10,   0, -15), VALUE3(  12,  -5,  -1), VALUE3(  17,   7,   2), VALUE3( -10,  25,  23), VALUE3(  -6,  14,  32),
-           VALUE3(  -8,   4,  30), VALUE3( -17,   2,  24), VALUE3( -11,  -5,  -2), VALUE3(   2, -15,  -5), VALUE3(   3, -13,   1), VALUE3(  -4, -12,   7), VALUE3( -14,   0,  11), VALUE3( -12,  -2,  10),
-           VALUE3( -22,  -6,  18), VALUE3( -23,  -7,   9), VALUE3(  -5, -14,  -2), VALUE3(  -6, -14,  -7), VALUE3(  -1, -13,  -1), VALUE3(  -1, -10,  -2), VALUE3( -22,  -9,  -2), VALUE3( -28, -12,   3),
-           VALUE3( -19, -12,   6), VALUE3( -21,  -9,   3), VALUE3(  -9,  -8,  -8), VALUE3( -12,  -6,  -8), VALUE3(   3,   1,  -8), VALUE3( -12,  -1,  -4), VALUE3(   8,  -5, -12), VALUE3( -18, -10,  -9),
-           VALUE3( -24,  -9,   9), VALUE3( -17,  -9,   2), VALUE3( -23,  -4,  -9), VALUE3( -13,   1,  -2), VALUE3( -13,   5, -12), VALUE3(   6,   8, -12), VALUE3(  13,   0, -13), VALUE3( -20, -26,   6),
+           VALUE3( 138, 102,  66), VALUE3(  88,  81,  74), VALUE3(  95,  69,  43), VALUE3( 121,  64,   8), VALUE3( 114,  63,  12), VALUE3( 113,  74,  36), VALUE3(  19,  42,  65), VALUE3(  75,  67,  59),
+           VALUE3(  -6,  15,  36), VALUE3(   0,  15,  30), VALUE3(  -6,   2,  11), VALUE3(   2,  -6, -15), VALUE3(  13,   0, -14), VALUE3(  21,   7,  -7), VALUE3(   2,  16,  30), VALUE3(  -2,  14,  30),
+           VALUE3(  -8,   8,  24), VALUE3( -15,   2,  19), VALUE3(  -9,  -5,  -2), VALUE3(   1,  -9, -20), VALUE3(   0,  -7, -14), VALUE3(  -5,  -5,  -5), VALUE3( -11,   0,  11), VALUE3( -11,  -1,   9),
+           VALUE3( -21,  -5,  11), VALUE3( -23,  -7,   9), VALUE3(  -5,  -8, -12), VALUE3(  -6, -11, -16), VALUE3(  -2,  -8, -14), VALUE3(  -2,  -5,  -9), VALUE3( -20,  -9,   1), VALUE3( -28, -12,   3),
+           VALUE3( -18, -10,  -2), VALUE3( -21,  -9,   3), VALUE3(  -9,  -8,  -8), VALUE3( -12,  -6,   0), VALUE3(   2,   0,  -1), VALUE3( -11,  -3,   5), VALUE3(   7,  -3, -14), VALUE3( -17, -12,  -7),
+           VALUE3( -25,  -9,   7), VALUE3( -17,  -7,   2), VALUE3( -23,  -7,   9), VALUE3( -12,   0,  12), VALUE3( -15,   1,  17), VALUE3(   6,   4,   3), VALUE3(  12,   0, -13), VALUE3( -23, -18, -14),
            VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999), VALUE3(-999,-999,-999)  },
-        {  VALUE3(-137, -66, -72), VALUE3(-129, -16, -37), VALUE3(   5, -26, -33), VALUE3(  50, -44, -28), VALUE3(  22, -14, -42), VALUE3(-105, -62, -27), VALUE3(-239, -92, -27), VALUE3( -57, -65, -75),
-           VALUE3(  18, -26, -12), VALUE3(  17,  -4, -10), VALUE3(  52,  -5, -23), VALUE3(  70,  12, -34), VALUE3(  29,  -8,   2), VALUE3(  94,  16, -42), VALUE3(  29,   3, -17), VALUE3(  81, -32, -48),
-           VALUE3(  -6, -14,  -2), VALUE3(  33,   6, -24), VALUE3(  73,  14,  -1), VALUE3(  55,  24,  -9), VALUE3( 113,  37, -18), VALUE3(  75,  28, -29), VALUE3(  63,  24, -23), VALUE3(  -3, -21, -32),
-           VALUE3(  37,   0, -10), VALUE3(  47,   9, -19), VALUE3(  48,  24,  -9), VALUE3(  73,  41, -12), VALUE3(  49,  34,  -2), VALUE3(  72,  41, -11), VALUE3(  39,  28, -10), VALUE3(  61,  16, -14),
-           VALUE3(  27,  -9,  -1), VALUE3(  27,  10,  -3), VALUE3(  51,  17, -13), VALUE3(  57,  26,  -7), VALUE3(  63,  30,  -5), VALUE3(  61,  29, -13), VALUE3(  58,  34, -29), VALUE3(  40,   9, -25),
-           VALUE3(   0, -25, -16), VALUE3(  20, -11, -18), VALUE3(  24,  -9,  -8), VALUE3(  35,   9, -11), VALUE3(  44,  14,  -9), VALUE3(  38,  -3, -20), VALUE3(  43,  -1, -24), VALUE3(  10, -10, -24),
-           VALUE3(  -5, -34, -24), VALUE3(   3,  -9, -15), VALUE3(  15, -16, -30), VALUE3(  26,  -5, -19), VALUE3(  30,  -2, -19), VALUE3(  27, -12, -42), VALUE3(  32,   8, -30), VALUE3(  19, -13, -40),
-           VALUE3( -23, -65, -11), VALUE3(  10, -26, -31), VALUE3(  -7, -25,  -9), VALUE3(  12,  -5,  -5), VALUE3(  23,  -8, -31), VALUE3(  11,  -8, -45), VALUE3(  11, -16, -32), VALUE3( -20, -47, -55)  },
-        {  VALUE3(  48,  10,   2), VALUE3( -52, -23,  20), VALUE3(   0,  -9, -19), VALUE3( -30, -31,  16), VALUE3( -68, -27,  14), VALUE3(-105, -25,  33), VALUE3( -81, -18, -12), VALUE3( -22, -19, -12),
-           VALUE3( -43, -16,  14), VALUE3(  23,   5,   7), VALUE3(   2, -12,   9), VALUE3( -36, -12,  -1), VALUE3(  11,   3,   1), VALUE3( -17,  -2,  -6), VALUE3(  -1,  -6,  21), VALUE3( -57, -44,  21),
-           VALUE3(  -2,  -4,   8), VALUE3(   2,   4,   8), VALUE3(  16,   9,  10), VALUE3(  24,  10,   0), VALUE3(  57,  19,   0), VALUE3(  42,  27,  -1), VALUE3(   1,  15,  16), VALUE3(  18,  10,   5),
-           VALUE3(  11,  -1,  28), VALUE3(  31,  14,  11), VALUE3(  23,  14,   0), VALUE3(  35,  32,   7), VALUE3(  26,  27,  15), VALUE3(  27,  19,  11), VALUE3(  36,  19,   7), VALUE3(  -2,  -1,   6),
-           VALUE3(  14,   2,  15), VALUE3(  11,   7,  -4), VALUE3(  21,  17,  13), VALUE3(  39,  27,  21), VALUE3(  50,  29,   8), VALUE3(  19,  10,   9), VALUE3(  24,   8,  -1), VALUE3(  37,   7, -14),
-           VALUE3(  11,   2,  -7), VALUE3(  24,   9,  -5), VALUE3(  13,  10,   2), VALUE3(  15,  11,   8), VALUE3(  11,  13,   3), VALUE3(  27,  19,  -8), VALUE3(  29,   8, -15), VALUE3(  19,   6,  -5),
-           VALUE3(  40,   3,  14), VALUE3(  20,  -6,  -8), VALUE3(  20,  -5,  -2), VALUE3(   7,   0,  -8), VALUE3(  14,   1, -10), VALUE3(  28,   8,  -4), VALUE3(  41,   9, -22), VALUE3(  35, -10, -21),
-           VALUE3(  12,  -6,  -3), VALUE3(  33,  -5,   1), VALUE3(   6,   0,  -4), VALUE3(  10,  -6,  13), VALUE3(   9,   2,  -1), VALUE3(   2,   3, -11), VALUE3(   2, -18, -22), VALUE3(  26,  -1, -23)  },
-        {  VALUE3(  63,  10,  57), VALUE3(  22,  22,  56), VALUE3(  22,  23,  42), VALUE3(  30,  24,  47), VALUE3(  25,  21,  52), VALUE3(  -7,  25,  50), VALUE3(  78,  19,  56), VALUE3(  35,  38,  38),
-           VALUE3(  -9,  31,  51), VALUE3( -19,  35,  51), VALUE3(  10,  44,  41), VALUE3(  43,  41,  41), VALUE3( -23,  42,  22), VALUE3(  56,  55,  35), VALUE3( -27,  42,  62), VALUE3( -10,  45,  36),
-           VALUE3( -20,  21,  60), VALUE3(  13,  20,  62), VALUE3(  -4,  29,  54), VALUE3(  28,  28,  42), VALUE3(  45,  37,  27), VALUE3(  35,  40,  56), VALUE3(  27,  36,  39), VALUE3( -22,  14,  59),
-           VALUE3( -14,  16,  61), VALUE3( -17,  20,  57), VALUE3(  17,  25,  42), VALUE3(  10,  24,  49), VALUE3(  22,  31,  38), VALUE3(  22,  35,  39), VALUE3(   0,  17,  48), VALUE3(   9,  18,  48),
-           VALUE3( -26,  11,  58), VALUE3( -31,  10,  65), VALUE3(  -9,  12,  54), VALUE3(   0,  17,  46), VALUE3(  -6,  21,  35), VALUE3(  13,  19,  31), VALUE3(  26,  25,  23), VALUE3( -13,   4,  39),
-           VALUE3( -22,   1,  49), VALUE3(  -4,   6,  43), VALUE3( -17,  14,  38), VALUE3(  -3,   6,  22), VALUE3(  -5,  11,  18), VALUE3(  -2,  10,  20), VALUE3(  20,  15,  11), VALUE3( -12,   0,  36),
-           VALUE3( -18,  -3,  31), VALUE3( -20,   2,  16), VALUE3(  -7,   3,  35), VALUE3(   2,   6,  20), VALUE3(   6,   6,   8), VALUE3(  15,   8,   2), VALUE3(  11,   4,   0), VALUE3( -59, -15,  20),
-           VALUE3(  -3,   4,  26), VALUE3(  -2,   2,  25), VALUE3(   4,   7,  34), VALUE3(  20,   6,  16), VALUE3(  18,   9,  18), VALUE3(  19,  13,   1), VALUE3( -11,   7,   2), VALUE3(   1,  -3,  22)  },
-        {  VALUE3( -43,  19, 114), VALUE3( -20,  15, 165), VALUE3(  -9,  35, 203), VALUE3(  -9,  20, 175), VALUE3( -62,  29, 170), VALUE3( -52,  60, 178), VALUE3( -70,  52, 121), VALUE3(  26,  12, 207),
-           VALUE3( -48,  27,  78), VALUE3( -43,  35,  93), VALUE3(  -6,  45,  67), VALUE3( -18,  45, 128), VALUE3( -65,  51,  99), VALUE3( -13,  69,  75), VALUE3( -15,  45,  64), VALUE3(  15,  58,  13),
-           VALUE3( -22,  19, 127), VALUE3(   7,  24, 116), VALUE3( -14,  32, 125), VALUE3(   3,  51, 128), VALUE3(  13,  59,  88), VALUE3(  17,  76,  74), VALUE3(  21,  74,  25), VALUE3(  17,  48,  52),
-           VALUE3( -10,  34,  66), VALUE3(  -9,  29, 146), VALUE3(   0,  37, 133), VALUE3( -16,  51, 100), VALUE3(  -5,  63,  89), VALUE3(  21,  51,  97), VALUE3(  -3,  83,  44), VALUE3(  16,  42,  58),
-           VALUE3(   2,  21,  93), VALUE3(  -1,  31, 123), VALUE3(   2,  30, 143), VALUE3(  -6,  42, 103), VALUE3(  21,  43,  90), VALUE3(   2,  42, 121), VALUE3(  23,  57,  88), VALUE3(  10,  49,  17),
-           VALUE3(  -4,  10, 162), VALUE3(   7,  25, 142), VALUE3(  -6,  37,  83), VALUE3(   0,  31, 114), VALUE3(   1,  36, 118), VALUE3(   4,  50,  61), VALUE3(  28,  35,  90), VALUE3(   9,  24, 137),
-           VALUE3(  -2,   8,  43), VALUE3(  10,  11,  97), VALUE3(  19,   6, 171), VALUE3(  18,  16, 101), VALUE3(  20,  17, 122), VALUE3(  33,  10,  52), VALUE3(  41,   4,  35), VALUE3(  28,  -4, -52),
-           VALUE3(  -2,   3,  52), VALUE3(  11,  -1, 114), VALUE3(  12,   4,  76), VALUE3(  18,   4, 118), VALUE3(  15,  17, 128), VALUE3(  -6,   7,  84), VALUE3( -18,  -2,  88), VALUE3( -13,  17, -16)  },
-        {  VALUE3(  79,  54, -40), VALUE3( -25,  15,  31), VALUE3( -22,  -5,  -2), VALUE3(-117, -63,  39), VALUE3(  82, 108, -85), VALUE3(  20,  65, -22), VALUE3( 228,  85, -78), VALUE3(  32, -25, -90),
-           VALUE3(-256,  -3,  43), VALUE3(   9,  51,  15), VALUE3( 255,  18,  13), VALUE3(  -3,  52,  19), VALUE3(-255,  20,  28), VALUE3(-255,  33,  44), VALUE3(  29,  45,  59), VALUE3(  29,  18,  23),
-           VALUE3(-256,  16,  35), VALUE3(  64,  57,  26), VALUE3(-201,  71,  37), VALUE3( 256,  67,  34), VALUE3(-256,  36,  53), VALUE3(  54,  51,  52), VALUE3(-253,  46,  42), VALUE3(-256,  21,   7),
-           VALUE3(-256,  13,  -6), VALUE3(-256,  19,  24), VALUE3( 239,  19,  37), VALUE3(-256,  22,  50), VALUE3(-256,  14,  53), VALUE3(-230,  29,  60), VALUE3(-256,  33,  26), VALUE3(-256, -45,   9),
-           VALUE3(-255, -13,   0), VALUE3(-101,  43,  -3), VALUE3( 120,  14,  38), VALUE3(-256,   6,  55), VALUE3(-202,  20,  56), VALUE3(-256,  10,  38), VALUE3( -45,  10,  12), VALUE3(-136, -45,  -5),
-           VALUE3( -81, -16, -16), VALUE3(   4,   4,   4), VALUE3( -28,  11,  22), VALUE3( -53,  10,  42), VALUE3( -81,  12,  44), VALUE3( -50,   9,  26), VALUE3(   4,   8,  -3), VALUE3( -46, -23, -13),
-           VALUE3(  47,   1, -38), VALUE3(  38,   8, -21), VALUE3(  19,  13,   5), VALUE3( -56,  -2,  25), VALUE3( -36,   1,  30), VALUE3( -17,   4,  18), VALUE3(  17,   7,  -3), VALUE3(  13,  -8, -30),
-           VALUE3(  18, -27, -72), VALUE3(  51,  -6, -63), VALUE3(  24,  -5, -16), VALUE3( -57, -27,  -2), VALUE3(  -2, -22,  -6), VALUE3( -42, -21,  -2), VALUE3(  16,  -9, -35), VALUE3(   8, -32, -63)  }
+        {  VALUE3(-123, -83, -44), VALUE3( -89, -47,  -6), VALUE3( -15, -26, -37), VALUE3( -46, -37, -29), VALUE3(   2, -20, -42), VALUE3(-110, -67, -25), VALUE3(-167, -94, -22), VALUE3( -57, -68, -79),
+           VALUE3(   2, -11, -25), VALUE3(  16,  -4, -24), VALUE3(  43,   1, -41), VALUE3(  59,  12, -34), VALUE3(  12,  -1, -14), VALUE3(  86,  17, -52), VALUE3(  20,   2, -16), VALUE3(  61,  -8, -78),
+           VALUE3(  -8, -11, -14), VALUE3(  34,   3, -27), VALUE3(  67,  23, -20), VALUE3(  53,  20, -12), VALUE3( 109,  37, -34), VALUE3(  68,  19, -30), VALUE3(  62,  19, -23), VALUE3(  -2, -20, -38),
+           VALUE3(  32,   6, -19), VALUE3(  44,  12, -20), VALUE3(  50,  20,  -9), VALUE3(  73,  36,   0), VALUE3(  50,  30,  10), VALUE3(  76,  35,  -6), VALUE3(  40,  23,   6), VALUE3(  60,  16, -27),
+           VALUE3(  23,  -3, -30), VALUE3(  25,   9,  -6), VALUE3(  51,  17, -16), VALUE3(  59,  26,  -7), VALUE3(  62,  28,  -5), VALUE3(  61,  24, -13), VALUE3(  61,  23, -15), VALUE3(  39,   6, -26),
+           VALUE3(  -1, -24, -48), VALUE3(  16,  -8, -33), VALUE3(  23,  -6, -35), VALUE3(  34,  10, -13), VALUE3(  44,  14, -15), VALUE3(  38,  -2, -42), VALUE3(  42,  -1, -44), VALUE3(   9, -13, -36),
+           VALUE3( -10, -28, -47), VALUE3(   1, -11, -24), VALUE3(  13, -13, -39), VALUE3(  26,  -5, -36), VALUE3(  28,  -2, -33), VALUE3(  26, -13, -53), VALUE3(  33,   1, -30), VALUE3(  16, -13, -42),
+           VALUE3( -42, -41, -41), VALUE3(   8, -27, -62), VALUE3( -10, -19, -29), VALUE3(   8,  -6, -21), VALUE3(  22,  -8, -39), VALUE3(  14, -14, -42), VALUE3(  10, -17, -45), VALUE3( -15, -47, -79)  },
+        {  VALUE3(  36,  10, -16), VALUE3( -55, -23,   9), VALUE3( -14, -17, -20), VALUE3( -52, -24,   4), VALUE3( -67, -26,  14), VALUE3( -85, -30,  24), VALUE3( -44, -25,  -6), VALUE3( -25, -20, -15),
+           VALUE3( -44, -16,  12), VALUE3(  21,   6,  -8), VALUE3(  -2,  -6, -10), VALUE3( -30, -15,  -1), VALUE3(  12,   3,  -6), VALUE3(  -9,  -7,  -5), VALUE3(   1,   0,   0), VALUE3( -63, -35,  -7),
+           VALUE3(  -3,  -4,  -6), VALUE3(   5,   0,  -4), VALUE3(  18,   9,   0), VALUE3(  26,   9,  -7), VALUE3(  51,  19, -13), VALUE3(  40,  21,   2), VALUE3(   0,   8,  17), VALUE3(  17,  10,   4),
+           VALUE3(   6,   5,   4), VALUE3(  30,  14,  -2), VALUE3(  22,  10,  -1), VALUE3(  41,  27,  14), VALUE3(  29,  24,  19), VALUE3(  26,  16,   7), VALUE3(  35,  20,   5), VALUE3(  -2,  -1,  -1),
+           VALUE3(  11,   4,  -2), VALUE3(  10,   3,  -4), VALUE3(  20,  16,  13), VALUE3(  38,  26,  14), VALUE3(  50,  29,   8), VALUE3(  19,  10,   2), VALUE3(  24,   8,  -7), VALUE3(  35,   7, -20),
+           VALUE3(   9,  -2, -14), VALUE3(  24,   9,  -5), VALUE3(  13,   7,   2), VALUE3(  15,  11,   8), VALUE3(  11,   9,   8), VALUE3(  29,  13,  -2), VALUE3(  27,   6, -15), VALUE3(  17,   6,  -5),
+           VALUE3(  36,   9, -18), VALUE3(  18,  -2, -22), VALUE3(  18,   1, -16), VALUE3(   6,  -1,  -8), VALUE3(  14,   1, -11), VALUE3(  25,   7, -11), VALUE3(  40,   8, -23), VALUE3(  31,  -3, -38),
+           VALUE3(   9,  -6, -21), VALUE3(  25,   4, -16), VALUE3(   5,  -1,  -7), VALUE3(   1,   0,  -2), VALUE3(   9,   2,  -4), VALUE3(   0,   1,   3), VALUE3(   2, -14, -30), VALUE3(  23,  -1, -25)  },
+        {  VALUE3(  19,  23,  27), VALUE3(  14,  23,  33), VALUE3(   9,  19,  29), VALUE3(  19,  24,  29), VALUE3(  -2,  21,  45), VALUE3(  -8,  18,  45), VALUE3(  13,  26,  40), VALUE3(  29,  32,  36),
+           VALUE3(  -1,  25,  51), VALUE3( -12,  23,  59), VALUE3(  17,  31,  46), VALUE3(  25,  31,  37), VALUE3(  11,  22,  34), VALUE3(  56,  45,  35), VALUE3( -10,  25,  61), VALUE3(  15,  31,  47),
+           VALUE3( -14,  19,  53), VALUE3(   0,  22,  44), VALUE3(  -8,  19,  47), VALUE3(  20,  25,  30), VALUE3(  35,  31,  27), VALUE3(  28,  34,  41), VALUE3(  30,  31,  32), VALUE3( -22,  15,  53),
+           VALUE3( -16,  16,  49), VALUE3( -21,  11,  44), VALUE3(   8,  21,  35), VALUE3(   3,  22,  41), VALUE3(  20,  25,  30), VALUE3(  20,  29,  39), VALUE3(  -5,  17,  40), VALUE3(   3,  18,  33),
+           VALUE3( -28,  11,  50), VALUE3( -36,   4,  44), VALUE3( -13,  12,  38), VALUE3(  -3,  15,  34), VALUE3(  -6,  14,  35), VALUE3(  11,  19,  28), VALUE3(  25,  22,  20), VALUE3( -16,   4,  25),
+           VALUE3( -28,   0,  29), VALUE3( -14,   6,  27), VALUE3( -21,   8,  38), VALUE3(  -7,   4,  16), VALUE3(  -4,   5,  15), VALUE3(  -2,   6,  14), VALUE3(  20,  15,  11), VALUE3( -15,   0,  14),
+           VALUE3( -26,  -3,  20), VALUE3( -19,  -1,  16), VALUE3( -13,   3,  20), VALUE3(  -1,   6,  14), VALUE3(   5,   6,   8), VALUE3(  15,   8,   2), VALUE3(   8,   4,   0), VALUE3( -59, -18,  23),
+           VALUE3(  -6,   4,  14), VALUE3(  -6,   4,  14), VALUE3(   0,   6,  12), VALUE3(  16,   8,   0), VALUE3(  18,   9,   0), VALUE3(  19,  13,   7), VALUE3( -11,   1,  14), VALUE3(   1,  -3,  -8)  },
+        {  VALUE3( -20,  14,  49), VALUE3( -11,  25,  62), VALUE3( -12,  40,  92), VALUE3(  -8,  25,  59), VALUE3(  -8,  28,  65), VALUE3(  71,  61,  52), VALUE3(   6,  44,  82), VALUE3(  57,  34,  11),
+           VALUE3( -46,  17,  81), VALUE3( -39,  14,  67), VALUE3(   0,  31,  63), VALUE3(  -8,  35,  78), VALUE3( -37,  30,  97), VALUE3(   5,  39,  74), VALUE3(  -8,  29,  66), VALUE3(  31,  36,  41),
+           VALUE3( -26,  19,  64), VALUE3(   6,  30,  54), VALUE3( -14,  24,  63), VALUE3(  -1,  39,  80), VALUE3(   7,  45,  84), VALUE3(  33,  53,  74), VALUE3(  31,  39,  47), VALUE3(  25,  38,  52),
+           VALUE3(  -7,  23,  54), VALUE3(  -9,  22,  53), VALUE3(  -3,  34,  71), VALUE3( -21,  39, 100), VALUE3(  -6,  48, 102), VALUE3(  21,  44,  68), VALUE3(   3,  54, 105), VALUE3(  15,  36,  58),
+           VALUE3(   2,  15,  28), VALUE3(  -1,  25,  52), VALUE3(   1,  23,  46), VALUE3(  -5,  33,  72), VALUE3(  18,  39,  60), VALUE3(  -4,  42,  88), VALUE3(  24,  52,  80), VALUE3(  10,  43,  76),
+           VALUE3(  -8,  15,  39), VALUE3(   7,  19,  31), VALUE3(  -6,  31,  68), VALUE3(   0,  25,  51), VALUE3(  -3,  34,  72), VALUE3(   0,  46,  92), VALUE3(  28,  35,  43), VALUE3(   8,  24,  40),
+           VALUE3(  -2,   4,  10), VALUE3(  10,  10,  10), VALUE3(  19,   0, -19), VALUE3(  19,  11,   4), VALUE3(  20,  17,  14), VALUE3(  33,  10, -13), VALUE3(  38,   4, -30), VALUE3(  30, -11, -53),
+           VALUE3(   0,  -3,  -6), VALUE3(  12,  -7, -26), VALUE3(  13,  -2, -18), VALUE3(  18,   4,  -9), VALUE3(  15,  17,  20), VALUE3(  -6,   7,  20), VALUE3( -18,  -2,  14), VALUE3(  -6,   3,  12)  },
+        {  VALUE3(  79,  19, -41), VALUE3( -28,   1,  31), VALUE3( -19,  -8,   2), VALUE3(-116, -43,  29), VALUE3(  81,  21, -39), VALUE3(  19,   6,  -7), VALUE3(  98,  20, -57), VALUE3(  30, -30, -91),
+           VALUE3( -54,  -5,  43), VALUE3(  12,  22,  33), VALUE3(   5,  11,  18), VALUE3(   0,  18,  36), VALUE3( -31,  12,  56), VALUE3(  27,  42,  57), VALUE3(  24,  40,  57), VALUE3(  23,  15,   7),
+           VALUE3(   0,  18,  36), VALUE3(  57,  41,  26), VALUE3(  56,  50,  44), VALUE3(  33,  38,  43), VALUE3(  20,  36,  52), VALUE3(  50,  50,  51), VALUE3(  46,  44,  42), VALUE3(  32,  21,  11),
+           VALUE3( -20,  -5,   9), VALUE3(   4,  19,  34), VALUE3( -16,  13,  43), VALUE3( -12,  22,  56), VALUE3( -24,  14,  53), VALUE3(  21,  37,  53), VALUE3(  35,  30,  25), VALUE3( -39, -20,  -2),
+           VALUE3( -41, -20,   1), VALUE3(  26,  19,  13), VALUE3(  -9,  14,  38), VALUE3( -49,   6,  61), VALUE3( -16,  20,  56), VALUE3( -19,   9,  38), VALUE3(  17,  14,  12), VALUE3( -60, -35, -10),
+           VALUE3( -25, -20, -16), VALUE3(   2,   3,   4), VALUE3(  -1,  11,  23), VALUE3( -22,  10,  42), VALUE3( -20,  12,  44), VALUE3(  -7,   9,  26), VALUE3(  19,   8,  -3), VALUE3( -33, -23, -13),
+           VALUE3(  41,   1, -38), VALUE3(  38,   8, -21), VALUE3(  21,  13,   5), VALUE3( -48,  -8,  31), VALUE3( -28,   1,  30), VALUE3( -10,   4,  18), VALUE3(  17,   7,  -3), VALUE3(  13,  -8, -30),
+           VALUE3(  15, -27, -70), VALUE3(  51,  -6, -63), VALUE3(  24,  -3, -30), VALUE3( -55, -29,  -4), VALUE3(  -2, -16, -30), VALUE3( -40, -21,  -2), VALUE3(  16,  -9, -35), VALUE3(   8, -32, -72)  }
     };
+
 #endif
 };
 
