@@ -139,7 +139,10 @@ using namespace std;
 #endif
 
 #define BITSET(x) (1ULL << (x))
-#define ONEORZERO(x) (!((x) & ((x) - 1)))
+#define TWOORMORE(x) ((x) & ((x) - 1))
+#define ONEORZERO(x) (!TWOORMORE(x))
+#define EXACTLYONE(x) ((x) && ONEORZERO(x))
+
 #ifdef _MSC_VER
 #define GETLSB(i,x) _BitScanForward64((DWORD*)&(i), (x))
 inline int pullLsb(unsigned long long *x) {
@@ -490,6 +493,8 @@ void registeralltuners(chessposition *pos);
 #define SCALE_ONEPAWN 48
 #define SCALE_HARDTOWIN 10
 #define SCALE_OCB 32
+#define SCALE_PAWN_MAJORITY 160
+#define SCALE_QUEEN_VS_PIECES 72
 
 enum EvalType { NOTRACE, TRACE};
 

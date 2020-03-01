@@ -722,6 +722,9 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
         + queens[BLACK] * materialvalue[QUEEN]
     };
 
+    e->onlyPawns = (nonpawnvalue[0] + nonpawnvalue[1] == 0);
+    e->numOfPawns = pawns[0] + pawns[1];
+
     // Check for insufficient material using simnple heuristic from chessprogramming site
     for (int me = WHITE; me <= BLACK; me++)
     {
@@ -730,8 +733,20 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
         if (pawns[me] == 0 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
             e->scale[me] = nonpawnvalue[me] < materialvalue[ROOK] ? SCALE_DRAW : SCALE_HARDTOWIN;
 
-        if (pawns[me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
+        else if (pawns[me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
             e->scale[me] = SCALE_ONEPAWN;
+
+        else if (nonpawnvalue[me] == materialvalue[QUEEN] && queens[you] == 0 && knights[you] + bishops[you] + rooks[you] >= 2)
+        {
+            e->scale[me] = SCALE_QUEEN_VS_PIECES;
+            //printf("info string QUEEN vs PIECEC!\n");
+        }
+
+        else if (pawns[me] - pawns[you] > 2 && nonpawnvalue[me] <= materialvalue[ROOK] && nonpawnvalue[you] <= materialvalue[ROOK])
+        {
+            e->scale[me] = SCALE_PAWN_MAJORITY;
+            //printf("info string PAWN MOJORITY!\n");
+        }
     }
 
     U64 bishopsbb = (piece00[WBISHOP] | piece00[BBISHOP]);
@@ -739,11 +754,10 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
         && (bishopsbb & WHITEBB) && (bishopsbb & BLACKBB)
         && nonpawnvalue[WHITE] <= materialvalue[BISHOP]
         && nonpawnvalue[BLACK] <= materialvalue[BISHOP])
+    {
         e->scale[WHITE] = e->scale[BLACK] = SCALE_OCB;
+    }
     
-    e->onlyPawns = (nonpawnvalue[0] + nonpawnvalue[1] == 0);
-    e->numOfPawns = pawns[0] + pawns[1];
-
     return e->scale[col];
 }
 
