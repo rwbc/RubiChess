@@ -493,8 +493,8 @@ void registeralltuners(chessposition *pos);
 #define SCALE_ONEPAWN 48
 #define SCALE_HARDTOWIN 10
 #define SCALE_OCB 32
-#define SCALE_PAWN_MAJORITY 160
-#define SCALE_QUEEN_VS_PIECES 72
+#define SCALE_PAWN_MAJORITY 144
+#define SCALE_QUEEN_VS_PIECES 80
 
 enum EvalType { NOTRACE, TRACE};
 
