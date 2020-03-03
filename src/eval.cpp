@@ -741,7 +741,7 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
             && (GETCAPTURE(movestack[mstop - 1].movecode) >> 1) != QUEEN)
         {
             e->scale[me] = SCALE_QUEEN_VS_PIECES;
-            printf("info string QUEEN vs PIECEC!\n");
+            //printf("info string QUEEN vs PIECEC!\n");
         }
 
         else if (pawns[me] - pawns[you] > 2 && nonpawnvalue[me] <= materialvalue[ROOK] && nonpawnvalue[you] <= materialvalue[ROOK])
