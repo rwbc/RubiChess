@@ -1133,7 +1133,7 @@ static void search_gen1(searchthread *thr)
                 // research with lower alpha and reduced beta
                 beta = (alpha + beta) / 2;
                 alpha = max(SHRT_MIN + 1, alpha - delta);
-                delta += delta / 2;
+                delta += delta / 4 + 2;
                 if (abs(alpha) > 1000)
                     delta = SHRT_MAX << 1;
                 inWindow = 0;
@@ -1144,7 +1144,7 @@ static void search_gen1(searchthread *thr)
             {
                 // research with higher beta
                 beta = min(SHRT_MAX, beta + delta);
-                delta += delta / 2;
+                delta += delta / 4 + 2;
                 if (abs(beta) > 1000)
                     delta = SHRT_MAX << 1;
                 inWindow = 2;
