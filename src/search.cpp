@@ -1033,18 +1033,19 @@ static void uciScore(searchthread *thr, int inWindow, U64 nowtime, int score, in
     string pvstring = pos->getPv(mpvIndex ? pos->multipvtable[mpvIndex] : pos->lastpv);
     U64 nodes = en.getTotalNodes();
     U64 nps = (nowtime == en.starttime) ? 1 : nodes / 1024 * en.frequency / (nowtime - en.starttime) * 1024;  // lower resolution to avoid overflow under Linux in high performance systems
+    int depth = thr->lastCompleteDepth + (inWindow != 1);
 
     if (!MATEDETECTED(score))
     {
         sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score cp %d %s nodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
-            thr->depth, pos->seldepth, mpvIndex + 1, msRun, score, boundscore[inWindow], nodes, nps,
+            depth, pos->seldepth, mpvIndex + 1, msRun, score, boundscore[inWindow], nodes, nps,
             en.tbhits, tp.getUsedinPermill(), pvstring.c_str());
     }
     else
     {
         int matein = (score > 0 ? (SCOREWHITEWINS - score + 1) / 2 : (SCOREBLACKWINS - score) / 2);
         sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score mate %d nodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
-            thr->depth, pos->seldepth, mpvIndex + 1, msRun, matein, nodes, nps,
+            depth, pos->seldepth, mpvIndex + 1, msRun, matein, nodes, nps,
             en.tbhits, tp.getUsedinPermill(), pvstring.c_str());
     }
     cout << s;
@@ -1059,10 +1060,9 @@ static void search_gen1(searchthread *thr)
 {
     int score;
     int alpha, beta;
-    int deltaalpha = 8;
-    int deltabeta = 8;
+    int delta = 8;
     int maxdepth;
-    int inWindow;
+    int inWindow = 1;
     bool reportedThisDepth;
 
 #ifdef TDEBUG
@@ -1133,40 +1133,43 @@ static void search_gen1(searchthread *thr)
             {
                 // research with lower alpha and reduced beta
                 beta = (alpha + beta) / 2;
-                alpha = max(SHRT_MIN + 1, alpha - deltaalpha);
-                deltaalpha += deltaalpha / 4 + 2;
+                alpha = max(SHRT_MIN + 1, alpha - delta);
+                delta += delta / 2;
                 if (abs(alpha) > 1000)
-                    deltaalpha = SHRT_MAX << 1;
+                    delta = SHRT_MAX << 1;
                 inWindow = 0;
                 reportedThisDepth = false;
+                thr->depth = thr->lastCompleteDepth;
             }
             else if (score == beta)
             {
                 // research with higher beta
-                beta = min(SHRT_MAX, beta + deltabeta);
-                deltabeta += deltabeta / 4 + 2;
+                beta = min(SHRT_MAX, beta + delta);
+                delta += delta / 2;
                 if (abs(beta) > 1000)
-                    deltabeta = SHRT_MAX << 1;
+                    delta = SHRT_MAX << 1;
                 inWindow = 2;
                 reportedThisDepth = false;
+                //Reduce depth if we had a fail-high
+                if (thr->depth > 4)
+                    thr->depth--;
             }
             else
             {
-                thr->lastCompleteDepth = thr->depth;
+                // next depth with new aspiration window
+                thr->lastCompleteDepth++;
+                if (thr->depth > 4) {
+                    delta = 8;
+                    if (isMultiPV)
+                        alpha = pos->bestmovescore[en.MultiPV - 1] - delta;
+                    else
+                        alpha = score - delta;
+                    beta = score + delta;
+                }
                 if (score >= en.terminationscore)
                 {
                     // bench mode reached needed score
                     en.stopLevel = ENGINEWANTSTOP;
-                }
-                else if (thr->depth > 4) {
-                    // next depth with new aspiration window
-                    deltaalpha = 8;
-                    deltabeta = 8;
-                    if (isMultiPV)
-                        alpha = pos->bestmovescore[en.MultiPV - 1] - deltaalpha;
-                    else
-                        alpha = score - deltaalpha;
-                    beta = score + deltabeta;
                 }
             }
         }
@@ -1232,12 +1235,12 @@ static void search_gen1(searchthread *thr)
         }
         if (inWindow == 1)
         {
+            thr->depth = thr->lastCompleteDepth + 1;
             // Skip some depths depending on current depth and thread number using Laser's method
             int cycle = thr->index % 16;
             if (thr->index && (thr->depth + cycle) % SkipDepths[cycle] == 0)
                 thr->depth += SkipSize[cycle];
 
-            thr->depth++;
             if (doPonder && en.isPondering() && thr->depth > maxdepth) thr->depth--;  // stay on maxdepth when pondering
             reportedThisDepth = true;
             constantRootMoves++;
