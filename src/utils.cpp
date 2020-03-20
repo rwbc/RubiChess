@@ -689,6 +689,7 @@ static int getGradientValue(eval *ev, positiontuneset *p, evalparam *e, bool deb
 }
 
 double texel_k = 1.121574;
+bool bEvalMode = false;
 
 static double TexelEvalError(struct tuner *tn, double k = texel_k)
 {
@@ -723,13 +724,14 @@ static void getGradsFromFen(string fenfilenames)
         fenfilenames = (spi == string::npos) ? "" : fenfilenames.substr(spi + 1, string::npos);
 
         int fentype = -1;
+        bool bScoreFromWhitePerspective = true;
         int gamescount = 0;
         bool fenmovemode = (filename.find(".fenmove") != string::npos);
         string line;
         smatch match;
         int c;
         int bw;
-        char R;
+        int16_t R;
         string fen;
         int Qi, Qr;
         int Q[4];
@@ -822,6 +824,22 @@ static void getGradsFromFen(string fenfilenames)
                     fen = match.str(1);
                     R = (match.str(2) == "White" ? 2 : (match.str(2) == "Black" ? 0 : 1));
                 }
+                else if ((fentype < 0 || fentype == 6) && regex_search(line, match, regex("\"(.*)\"\\s+(.*)")))
+                {
+                    // eval dump
+                    if (fentype < 0)
+                    {
+                        printf("Format: \"fen\" eval (from eval dump)\n");
+                        fentype = 6;
+                        bScoreFromWhitePerspective = false;
+                        bEvalMode = true;
+                    }
+                    fen = match.str(1);
+                    try {
+                        R = stoi(match.str(2));
+                    }
+                    catch (...) { printf("Can't get eval from %s\n", line.c_str()); }
+                }
                 if (fen != "")
                 {
                     bw = 1 - bw;
@@ -835,7 +853,11 @@ static void getGradsFromFen(string fenfilenames)
                         pos.ply = 0;
                         Qi = pos.getQuiescence(SHRT_MIN + 1, SHRT_MAX, 0);
                         if (!pos.w2m())
+                        {
                             Qi = -Qi;
+                            if (!bScoreFromWhitePerspective)
+                                R = -R;
+                        }
                         positiontuneset *nextpts = (positiontuneset*)pnext;
                         *nextpts = pos.pts;
                         nextpts->R = R;

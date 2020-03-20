@@ -32,7 +32,7 @@
 #define TDEBUG
 #endif
 
-#if 0
+#if 1
 #define EVALTUNE
 #endif
 
@@ -448,7 +448,7 @@ struct positiontuneset {
     uint8_t ph;
     uint8_t sc;
     uint16_t num;
-    int8_t R;
+    int16_t R;
     //int8_t padding[3];
 };
 
