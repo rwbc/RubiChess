@@ -695,18 +695,29 @@ static double TexelEvalError(struct tuner *tn, double k = texel_k)
 {
     double Ri, Qi;
     double E = 0.0;
+    double sigmoid;
 
     positiontuneset *p = (positiontuneset*)texelpts;
     for (U64 i = 0; i < texelptsnum; i++)
     {
         evalparam *e = (evalparam *)((char*)p + sizeof(positiontuneset));
 
-        Ri = p->R / 2.0;
         if (p->sc == SCALE_DRAW)
             Qi = SCOREDRAW;
         else
             Qi = TAPEREDANDSCALEDEVAL(getGradientValue(tn->ev, p, e), p->ph, p->sc);
-        double sigmoid = 1 / (1 + pow(10.0, - k * Qi / 400.0));
+
+
+        if (bEvalMode)
+        {
+            sigmoid = 1 / (1 + pow(10.0, -Qi / 400.0));
+            Ri = 1 / (1 + pow(10.0, -p->R / 400.0));
+        }
+        else
+        {
+            sigmoid = 1 / (1 + pow(10.0, -k * Qi / 400.0));
+            Ri = p->R / 2.0;
+        }
         E += (Ri - sigmoid) * (Ri - sigmoid);
         p = (positiontuneset*)((char*)p + sizeof(positiontuneset) + p->num * sizeof(evalparam));
     }
@@ -1185,8 +1196,23 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
         double bound[2] = { 0.0, 10.0 };
         double x, lastx;
         int direction = 0;
-        //double delta;
+#if 1
+        if (bEvalMode)
+        {
+            bound[0] = 0.0;
+            bound[1] = 0.03;
+        }
+#endif
         lastx = (bound[0] + bound[1]) / 2;
+
+#if 1
+        double f = 0.00001;
+        while (f < 10000000.0)
+        {
+            printf("%f  ->  %0.10f\n", f, TexelEvalError(tn, f));
+            f = f * 10;
+        }
+#endif
 
         E[0] = TexelEvalError(tn, bound[0]);
         E[1] = TexelEvalError(tn, bound[1]);
@@ -1219,6 +1245,7 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
         printf("Best k for this tuning set: %0.10f\n", texel_k);
     }
 
+    //texel_k = 0;
     bool improved = true;
     bool leaveSoon = false;
     bool leaveNow = false;
