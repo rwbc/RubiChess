@@ -710,8 +710,15 @@ static double TexelEvalError(struct tuner *tn, double k = texel_k)
 
         if (bEvalMode)
         {
-            sigmoid = 1 / (1 + pow(10.0, -Qi / 400.0));
+#if 0
+            sigmoid = 1 / (1 + pow(10.0, -k * Qi / 400.0));
+            Ri = p->R > 150 ? 1.0 : p->R > 80 ? 0.75 : p->R < -150 ? 0.0 : p->R < -80 ? 0.25 : 0.5;
+            printf("%5d vs %5d      %3.3f vs %3.3f\n", (int)Qi, p->R, sigmoid, Ri);
+#else
+            sigmoid = 1 / (1 + pow(10.0, -k * Qi / 400.0));
             Ri = 1 / (1 + pow(10.0, -p->R / 400.0));
+#endif
+
         }
         else
         {
@@ -735,7 +742,7 @@ static void getGradsFromFen(string fenfilenames)
         fenfilenames = (spi == string::npos) ? "" : fenfilenames.substr(spi + 1, string::npos);
 
         int fentype = -1;
-        bool bScoreFromWhitePerspective = true;
+        //bool bScoreFromWhitePerspective = true;
         int gamescount = 0;
         bool fenmovemode = (filename.find(".fenmove") != string::npos);
         string line;
@@ -842,7 +849,7 @@ static void getGradsFromFen(string fenfilenames)
                     {
                         printf("Format: \"fen\" eval (from eval dump)\n");
                         fentype = 6;
-                        bScoreFromWhitePerspective = false;
+                        //bScoreFromWhitePerspective = false;
                         bEvalMode = true;
                     }
                     fen = match.str(1);
@@ -864,11 +871,8 @@ static void getGradsFromFen(string fenfilenames)
                         pos.ply = 0;
                         Qi = pos.getQuiescence(SHRT_MIN + 1, SHRT_MAX, 0);
                         if (!pos.w2m())
-                        {
                             Qi = -Qi;
-                            if (!bScoreFromWhitePerspective)
-                                R = -R;
-                        }
+
                         positiontuneset *nextpts = (positiontuneset*)pnext;
                         *nextpts = pos.pts;
                         nextpts->R = R;
@@ -1089,6 +1093,7 @@ static void tuneParameter(struct tuner *tn)
                 p = p + delta;
             }
         } while (abs(pbound[1] - pbound[0]) > 2);
+        pmin = max(-512, min(512, pmin));
         if (subParam == 2)
             tn->ev[tn->paramindex].replace(g, pmin);
         else
@@ -1100,6 +1105,9 @@ static void tuneParameter(struct tuner *tn)
     tn->error = Emin;
     tn->busy = false;
 }
+
+
+int iThreads;
 
 
 static void updateTunerPointer(chessposition *p, tunerpool *pool)
@@ -1139,7 +1147,7 @@ static void collectTuners(chessposition *p, tunerpool *pool, tuner **freeTuner)
             if (tn->thr.joinable())
                 tn->thr.join();
 
-            if (freeTuner) *freeTuner = tn;
+            if (freeTuner && i < iThreads) *freeTuner = tn;
 
             if (pi >= 0)
             {
@@ -1162,7 +1170,7 @@ static void collectTuners(chessposition *p, tunerpool *pool, tuner **freeTuner)
 }
 
 
-void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
+void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK, bool bPreload)
 {
     pos.pwnhsh = new Pawnhash(0);
     registeralltuners(&pos);
@@ -1170,8 +1178,18 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
     en.setOption("hash", "4"); // we don't need tt; save all the memory for game data
     getGradsFromFen(fenfilenames);
     if (!texelptsnum) return;
-
+    if (bPreload)
+    {
+        evalparamset_preload eps_preload;
+        for (int i = 0; i < pos.tps.count; i++)
+        {
+            eval *e = (eval *)&eps_preload + i;
+            if (e->v != pos.tps.ev[i]->v)
+                pos.tps.ev[i]->v = e->v;
+        }
+    }
     tunerpool tpool;
+    iThreads = en.Threads;
     tpool.tn = new struct tuner[en.Threads];
     tpool.lowRunning = -1;
     tpool.highRunning = -1;
@@ -1193,10 +1211,10 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
         copyParams(&pos, tn);
         double E[2];
         double Emin, Error;
-        double bound[2] = { 0.0, 10.0 };
+        double bound[2] = { 0.0, 4.0 };
         double x, lastx;
         int direction = 0;
-#if 1
+#if 0
         if (bEvalMode)
         {
             bound[0] = 0.0;
@@ -1205,7 +1223,7 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
 #endif
         lastx = (bound[0] + bound[1]) / 2;
 
-#if 1
+#if 0
         double f = 0.00001;
         while (f < 10000000.0)
         {
@@ -1217,13 +1235,13 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
         E[0] = TexelEvalError(tn, bound[0]);
         E[1] = TexelEvalError(tn, bound[1]);
         Emin = TexelEvalError(tn, lastx);
-        if (Emin > E[0] || Emin > E[1])
+        if (0 && (Emin > E[0] || Emin > E[1]))
         {
             printf("Tuning Error! Wrong bounds. E0=%0.10f  E1=%0.10f  Ed=%0.10f\n", E[0], E[1], Emin);
             return;
         }
 
-        while (bound[1] - bound[0] > 0.001)
+        while (bound[1] - bound[0] > 0.00001)
         {
             x = (lastx + bound[direction]) / 2;
             Error = TexelEvalError(tn, x);
@@ -1245,12 +1263,11 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
         printf("Best k for this tuning set: %0.10f\n", texel_k);
     }
 
-    //texel_k = 0;
     bool improved = true;
     bool leaveSoon = false;
     bool leaveNow = false;
 
-    printf("Tuning starts now.\nPress 'P' to output current parameters.\nPress 'B' to break after current tuning loop.\nPress 'S' for immediate break.\n\n");
+    printf("Tuning starts now.\nPress 'P' to output current parameters.\nPress 'B' to break after current tuning loop.\nPress 'S' for immediate break.\nPress '+', '-' to increase/decrease threads to use.\n\n");
 
     while (improved && !leaveSoon && !leaveNow)
     {
@@ -1288,6 +1305,16 @@ void TexelTune(string fenfilenames, bool noqs, bool bOptimizeK)
                         {
                             printf("Stopping now!\n");
                             leaveNow = true;
+                        }
+                        if (c == '-')
+                        {
+                            iThreads = max(1, iThreads - 1);
+                            printf("Now using %d threads...\n", iThreads);
+                        }
+                        if (c == '+')
+                        {
+                            iThreads = min(en.Threads, iThreads + 1);
+                            printf("Now using %d threads...\n", iThreads);
                         }
                     }
                 }

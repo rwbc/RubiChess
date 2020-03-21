@@ -437,6 +437,162 @@ struct evalparamset {
 
 #ifdef EVALTUNE
 
+struct evalparamset_preload {
+    // Use these values as starting point for the tuner
+    eval eComplexpawnsbonus =  EVALUE(   4);
+    eval eComplexpawnflanksbonus =  EVALUE(  66);
+    eval eComplexonlypawnsbonus =  EVALUE(  71);
+    eval eComplexadjust =  EVALUE(-100);
+    eval eTempo =  CVALUE(  20);
+    eval eKingpinpenalty[6] = {  VALUE(   0,   0), VALUE(   0,   0), VALUE(-118,-180), VALUE(-124,-181), VALUE(-138,-242), VALUE(-164,-711)  };
+    eval ePawnstormblocked[4][5] = {
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  11,   5), VALUE(  -5,  -2), VALUE(  -6,  -3)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(   5,   1), VALUE(  -5,   4), VALUE(  -4,  -2)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  10,  -1), VALUE(   6,  -6), VALUE(  -4,  -6)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(   8,   2), VALUE(   3,  -4), VALUE( -10,   0)  }
+    };
+    eval ePawnstormfree[4][5] = {
+        {  VALUE(  36, -17), VALUE(  36, -12), VALUE(  11,  -8), VALUE(  -5,   4), VALUE(   1,   1)  },
+        {  VALUE(  79, -24), VALUE(  69, -10), VALUE(  36,  -7), VALUE(   2,  -3), VALUE(   3,   0)  },
+        {  VALUE(  74, -19), VALUE(  55,  -5), VALUE(  42, -16), VALUE(   0,  -5), VALUE(   6,  -3)  },
+        {  VALUE(  82, -28), VALUE(  46,  -6), VALUE(  25, -11), VALUE(   3,  -5), VALUE(  -3,   2)  }
+    };
+    eval ePawnpushthreatbonus =  VALUE(   0,  -1);
+    eval eSafepawnattackbonus =  VALUE(  -5,   1);
+    eval eHangingpiecepenalty =  VALUE(  30, -31);
+    eval ePassedpawnbonus[4][8] = {
+        {  VALUE(   0,   0), VALUE(  -5,   4), VALUE(  -8,  23), VALUE(  11,  -9), VALUE(  10,  -4), VALUE( -10, -24), VALUE(-137,-251), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -24,  28), VALUE(  -8,  32), VALUE(   9,  -6), VALUE(  20, -16), VALUE(   0, -20), VALUE(-118,-260), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -42,  28), VALUE( -31,  48), VALUE( -14,  11), VALUE(   3,   3), VALUE( -26, -11), VALUE(-198,-211), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -27,  27), VALUE( -15,  49), VALUE( -14,  18), VALUE(   2,  -2), VALUE( -21, -12), VALUE(-140,-245), VALUE(   0,   0)  }
+    };
+    eval eKingsupportspasserbonus[7][8] = {
+        {  VALUE(   0,   0), VALUE(   3, 122), VALUE(  22, -17), VALUE(  25,   7), VALUE( -15, -30), VALUE( -18,-137), VALUE( -60,-152), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  11, 121), VALUE(  33, -16), VALUE(  13,  15), VALUE( -45, -12), VALUE( -16,-121), VALUE(  24,-188), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   5, 122), VALUE(  29, -12), VALUE(   3,  23), VALUE( -10, -27), VALUE(   6,-128), VALUE(  26,-154), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  13, 124), VALUE(  26, -13), VALUE(   5,  21), VALUE( -19, -23), VALUE( -10,-117), VALUE( -31,-146), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   7, 126), VALUE(  29, -19), VALUE(  -2,  24), VALUE( -15, -23), VALUE( -20,-116), VALUE( -28,-145), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   8, 123), VALUE(  20, -19), VALUE(   1,  15), VALUE( -34, -16), VALUE( -37,-107), VALUE( -37,-143), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -10, 141), VALUE(  17,  -4), VALUE(  -5,  10), VALUE( -29, -27), VALUE(  11,-138), VALUE( -24,-165), VALUE(   0,   0)  }
+    };
+    eval eKingdefendspasserpenalty[7][8] = {
+        {  VALUE(   0,   0), VALUE(  39,-147), VALUE( -20, -32), VALUE(  -9, -30), VALUE(  25,  16), VALUE(  31, 110), VALUE( -55, 176), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(-106,-132), VALUE( -52, -29), VALUE( -33, -25), VALUE(  -3,  25), VALUE(  37, 108), VALUE( -72, 180), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -26,-141), VALUE( -32, -34), VALUE( -13, -27), VALUE(   5,  23), VALUE(  54, 110), VALUE( -85, 187), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -24,-138), VALUE( -22, -31), VALUE(  -6, -30), VALUE(  13,  18), VALUE(  45, 107), VALUE( -95, 197), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  -6,-144), VALUE( -14, -32), VALUE(   4, -32), VALUE(  -1,  26), VALUE(  54, 111), VALUE( -82, 201), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   6,-157), VALUE(  -4, -31), VALUE(  -1, -26), VALUE(  12,  19), VALUE(  49, 117), VALUE( -80, 199), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  15,-137), VALUE(   4, -38), VALUE(   6, -21), VALUE(  38,  19), VALUE(  83,  86), VALUE( -79, 218), VALUE(   0,   0)  }
+    };
+    eval ePotentialpassedpawnbonus[2][8] = {
+        {  VALUE(   0,   0), VALUE(  28, -15), VALUE(  -3,  14), VALUE(  17,   5), VALUE(  37,  60), VALUE(  75,  81), VALUE(  44, 108), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  -2,   0), VALUE(   1,   2), VALUE(   6,   6), VALUE(  20,  25), VALUE(  53,   7), VALUE( -14,  10), VALUE(   0,   0)  }
+    };
+    eval eAttackingpawnbonus[8] = {  VALUE(   0,   0), VALUE( -48,  12), VALUE( -14,   4), VALUE( -14,  -6), VALUE( -14,  -6), VALUE( -15,   1), VALUE(   0,   0), VALUE(   0,   0)  };
+    eval eIsolatedpawnpenalty =  VALUE(   3,  -9);
+    eval eDoublepawnpenalty =  VALUE(   2, -17);
+    eval eConnectedbonus[6][6] = {
+        {  VALUE(   0,   0), VALUE(   0, -14), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   3, -20), VALUE(   4, -27), VALUE(   0, -33), VALUE(   1, -44), VALUE(  13, -37)  },
+        {  VALUE(   0,   0), VALUE(   6, -14), VALUE(   5, -24), VALUE(   8, -31), VALUE(   4, -39), VALUE(  -9, -24)  },
+        {  VALUE(   0,   0), VALUE(  64, -75), VALUE(  10, -19), VALUE( 169,-354), VALUE(  13, -28), VALUE( 263,-557)  },
+        {  VALUE(   0,   0), VALUE(  -9,  12), VALUE(  17, -19), VALUE(  16,   2), VALUE(  36, -35), VALUE( -57, 253)  },
+        {  VALUE(   0,   0), VALUE(   0,  -9), VALUE(   1,  -6), VALUE(   7, 400), VALUE(-192, 109), VALUE(   0,   0)  }
+    };
+    eval eBackwardpawnpenalty =  VALUE(  -1,  -9);
+    eval eDoublebishopbonus =  VALUE(  -9,  13);
+    eval ePawnblocksbishoppenalty =  VALUE(  -1,   3);
+    eval eBishopcentercontrolbonus =  VALUE(   0,   4);
+    eval eMobilitybonus[4][28] = {
+        {  VALUE(  16, -90), VALUE(  38, -26), VALUE(  51,   1), VALUE(  57,  13), VALUE(  64,  27), VALUE(  71,  37), VALUE(  77,  36), VALUE(  84,  36),
+           VALUE(  86,  30), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(  -8, -25), VALUE(  23,  -7), VALUE(  45,   2), VALUE(  55,  21), VALUE(  65,  31), VALUE(  74,  35), VALUE(  80,  43), VALUE(  81,  50),
+           VALUE(  86,  51), VALUE(  85,  58), VALUE(  86,  52), VALUE(  95,  55), VALUE( 100,  54), VALUE(  89,  60), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE( -57,  11), VALUE(  14,  17), VALUE(  31,  57), VALUE(  34,  70), VALUE(  36,  82), VALUE(  38,  90), VALUE(  40,  92), VALUE(  46,  96),
+           VALUE(  47, 101), VALUE(  50, 111), VALUE(  54, 109), VALUE(  50, 115), VALUE(  49, 118), VALUE(  50, 116), VALUE(  44, 116), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(-4097,  83), VALUE(  13,-157), VALUE(  -2,  31), VALUE(   3,  75), VALUE(   5,  94), VALUE(   4, 152), VALUE(   6, 161), VALUE(  11, 177),
+           VALUE(  10, 192), VALUE(  15, 187), VALUE(  14, 212), VALUE(  17, 213), VALUE(  16, 227), VALUE(  18, 229), VALUE(  17, 242), VALUE(  19, 251),
+           VALUE(  20, 253), VALUE(  21, 256), VALUE(  18, 263), VALUE(  13, 270), VALUE(  45, 244), VALUE(  67, 233), VALUE(  72, 241), VALUE(  80, 230),
+           VALUE(  69, 264), VALUE( 108, 231), VALUE( 107, 230), VALUE( 114, 198)  }
+    };
+    eval eRookon7thbonus =  VALUE( -58,  16);
+    eval eMinorbehindpawn[6] = {  VALUE(  -2,   4), VALUE(  -4,   1), VALUE(   2,   0), VALUE(  -2,   2), VALUE(  -5, -11), VALUE(-102,  13)  };
+    eval eSlideronfreefilebonus[2] = {  VALUE( -10,  14), VALUE( -16,  17)  };
+    eval eMaterialvalue[7] = {  VALUE(   0,   0), VALUE( 100, 100), VALUE( 314, 314), VALUE( 314, 314), VALUE( 483, 483), VALUE( 913, 913), VALUE(   0,   0)  };
+    eval eKingshieldbonus =  VALUE(  -8,  -2);
+    eval eWeakkingringpenalty =  SQVALUE(   1,  70);
+    eval eKingattackweight[7] = {  SQVALUE(   1,   0), SQVALUE(   1,   0), SQVALUE(   1,  25), SQVALUE(   1,  11), SQVALUE(   1,  15), SQVALUE(   1,  42), SQVALUE(   1,   0)  };
+    eval eSafecheckbonus[6] = {  SQVALUE(   1,   0), SQVALUE(   1,   0), SQVALUE(   1, 282), SQVALUE(   1,  55), SQVALUE(   1, 244), SQVALUE(   1, 210)  };
+    eval eKingdangerbyqueen =  SQVALUE(   1,-163);
+    eval eKingringattack[6] = {  SQVALUE(   1, 111), SQVALUE(   1,   0), SQVALUE(   1,  31), SQVALUE(   1,   0), SQVALUE(   1,   0), SQVALUE(   1, -15)  };
+    eval ePsqt[7][64] = {
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+           VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999),
+           VALUE( 132, 107), VALUE( 119,  79), VALUE( 164, 101), VALUE( 134, 115), VALUE( 101, 130), VALUE( 112, 118), VALUE( 162,  85), VALUE( 115, 110),
+           VALUE(-110, -69), VALUE(-108, -78), VALUE(-114, -67), VALUE(-129, -63), VALUE(-116, -74), VALUE(-122, -70), VALUE(-101, -80), VALUE(-102, -78),
+           VALUE(-105, -81), VALUE( -99, -87), VALUE(-105, -82), VALUE(-105, -84), VALUE(-107, -90), VALUE(-103, -88), VALUE(-103, -87), VALUE(-105, -84),
+           VALUE(-105, -76), VALUE( -99, -82), VALUE( -99, -85), VALUE( -98, -83), VALUE( -98, -79), VALUE( -99, -85), VALUE( -95, -89), VALUE( -99, -84),
+           VALUE(-103, -71), VALUE( -95, -74), VALUE( -99, -73), VALUE( -96, -66), VALUE( -96, -59), VALUE( -93, -76), VALUE( -90, -69), VALUE( -96, -73),
+           VALUE(-102, -77), VALUE( -98, -78), VALUE( -96, -87), VALUE( -96, -72), VALUE( -93, -70), VALUE( -95, -82), VALUE( -87, -87), VALUE( -95, -76),
+           VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999), VALUE(-999,-999)  },
+        {  VALUE(-259,-125), VALUE(-211,-158), VALUE(-237,-148), VALUE(-315,-133), VALUE(-310,-116), VALUE(-284,-155), VALUE(-263,-130), VALUE(-298,-119),
+           VALUE(-196,-165), VALUE(-179,-175), VALUE(-220,-148), VALUE(-230,-156), VALUE(-218,-159), VALUE(-229,-159), VALUE(-210,-168), VALUE(-244,-159),
+           VALUE(-201,-164), VALUE(-197,-169), VALUE(-184,-180), VALUE(-188,-177), VALUE(-216,-180), VALUE(-226,-188), VALUE(-212,-173), VALUE(-227,-175),
+           VALUE(-179,-178), VALUE(-177,-182), VALUE(-167,-188), VALUE(-182,-180), VALUE(-186,-184), VALUE(-195,-186), VALUE(-201,-184), VALUE(-206,-177),
+           VALUE(-172,-170), VALUE(-178,-176), VALUE(-171,-178), VALUE(-173,-180), VALUE(-175,-179), VALUE(-175,-179), VALUE(-186,-179), VALUE(-177,-175),
+           VALUE(-169,-174), VALUE(-171,-174), VALUE(-167,-179), VALUE(-176,-176), VALUE(-168,-176), VALUE(-171,-176), VALUE(-180,-171), VALUE(-169,-184),
+           VALUE(-175,-168), VALUE(-180,-160), VALUE(-173,-181), VALUE(-172,-170), VALUE(-172,-175), VALUE(-180,-167), VALUE(-179,-177), VALUE(-177,-192),
+           VALUE(-184,-145), VALUE(-170,-182), VALUE(-180,-171), VALUE(-169,-183), VALUE(-173,-178), VALUE(-170,-182), VALUE(-165,-180), VALUE(-175,-159)  },
+        {  VALUE(-230,-136), VALUE(-225,-140), VALUE(-178,-159), VALUE(-242,-138), VALUE(-267,-121), VALUE(-262,-128), VALUE(-242,-147), VALUE(-226,-145),
+           VALUE(-174,-158), VALUE(-188,-161), VALUE(-188,-161), VALUE(-181,-162), VALUE(-199,-165), VALUE(-196,-168), VALUE(-181,-175), VALUE(-220,-164),
+           VALUE(-169,-168), VALUE(-180,-175), VALUE(-176,-179), VALUE(-170,-178), VALUE(-177,-181), VALUE(-199,-171), VALUE(-192,-177), VALUE(-178,-177),
+           VALUE(-174,-164), VALUE(-157,-181), VALUE(-174,-170), VALUE(-174,-177), VALUE(-174,-175), VALUE(-179,-173), VALUE(-157,-177), VALUE(-163,-175),
+           VALUE(-164,-177), VALUE(-163,-176), VALUE(-161,-184), VALUE(-162,-182), VALUE(-173,-171), VALUE(-152,-185), VALUE(-161,-172), VALUE(-167,-182),
+           VALUE(-159,-175), VALUE(-160,-187), VALUE(-159,-179), VALUE(-161,-178), VALUE(-155,-182), VALUE(-157,-183), VALUE(-163,-179), VALUE(-165,-165),
+           VALUE(-164,-175), VALUE(-157,-178), VALUE(-162,-177), VALUE(-154,-176), VALUE(-154,-179), VALUE(-158,-182), VALUE(-158,-180), VALUE(-160,-187),
+           VALUE(-161,-165), VALUE(-166,-191), VALUE(-152,-183), VALUE(-154,-177), VALUE(-162,-173), VALUE(-154,-176), VALUE(-171,-169), VALUE(-163,-159)  },
+        {  VALUE(-301,-307), VALUE(-309,-304), VALUE(-310,-307), VALUE(-329,-300), VALUE(-345,-300), VALUE(-344,-294), VALUE(-325,-312), VALUE(-299,-312),
+           VALUE(-245,-328), VALUE(-237,-332), VALUE(-247,-330), VALUE(-262,-334), VALUE(-252,-342), VALUE(-286,-325), VALUE(-292,-323), VALUE(-290,-320),
+           VALUE(-294,-311), VALUE(-285,-311), VALUE(-266,-324), VALUE(-280,-331), VALUE(-276,-330), VALUE(-314,-316), VALUE(-317,-324), VALUE(-315,-307),
+           VALUE(-282,-314), VALUE(-262,-328), VALUE(-267,-327), VALUE(-259,-330), VALUE(-268,-327), VALUE(-282,-322), VALUE(-313,-304), VALUE(-305,-304),
+           VALUE(-275,-316), VALUE(-265,-325), VALUE(-275,-315), VALUE(-255,-331), VALUE(-266,-322), VALUE(-280,-324), VALUE(-304,-316), VALUE(-297,-314),
+           VALUE(-269,-312), VALUE(-263,-329), VALUE(-259,-333), VALUE(-258,-324), VALUE(-259,-332), VALUE(-275,-327), VALUE(-301,-317), VALUE(-289,-313),
+           VALUE(-277,-308), VALUE(-272,-326), VALUE(-256,-329), VALUE(-260,-325), VALUE(-258,-331), VALUE(-276,-324), VALUE(-279,-324), VALUE(-277,-318),
+           VALUE(-268,-320), VALUE(-267,-321), VALUE(-260,-326), VALUE(-261,-324), VALUE(-262,-330), VALUE(-270,-324), VALUE(-281,-319), VALUE(-279,-312)  },
+        {  VALUE(-511,-452), VALUE(-573,-406), VALUE(-552,-453), VALUE(-630,-399), VALUE(-568,-479), VALUE(-607,-458), VALUE(-551,-462), VALUE(-520,-483),
+           VALUE(-432,-491), VALUE(-394,-556), VALUE(-419,-544), VALUE(-461,-522), VALUE(-518,-492), VALUE(-484,-561), VALUE(-443,-557), VALUE(-466,-515),
+           VALUE(-399,-511), VALUE(-407,-512), VALUE(-415,-532), VALUE(-418,-555), VALUE(-415,-574), VALUE(-525,-520), VALUE(-478,-574), VALUE(-490,-524),
+           VALUE(-421,-478), VALUE(-378,-546), VALUE(-398,-537), VALUE(-397,-578), VALUE(-406,-583), VALUE(-410,-574), VALUE(-401,-582), VALUE(-422,-555),
+           VALUE(-369,-561), VALUE(-386,-540), VALUE(-370,-580), VALUE(-370,-595), VALUE(-376,-590), VALUE(-376,-585), VALUE(-384,-580), VALUE(-402,-549),
+           VALUE(-375,-547), VALUE(-368,-568), VALUE(-371,-576), VALUE(-358,-600), VALUE(-362,-580), VALUE(-369,-589), VALUE(-384,-563), VALUE(-395,-549),
+           VALUE(-383,-530), VALUE(-375,-557), VALUE(-373,-568), VALUE(-363,-573), VALUE(-365,-574), VALUE(-382,-551), VALUE(-390,-552), VALUE(-400,-499),
+           VALUE(-356,-576), VALUE(-376,-549), VALUE(-372,-546), VALUE(-357,-602), VALUE(-369,-562), VALUE(-361,-562), VALUE(-364,-571), VALUE(-389,-510)  },
+        {  VALUE( 512,-126), VALUE(  14,  -1), VALUE(   7, -14), VALUE( -35,   1), VALUE( 174,-108), VALUE(  47, -46), VALUE( 256, -87), VALUE( -35,  19),
+           VALUE(  64, -27), VALUE( -37,   7), VALUE( 115, -28), VALUE(   2,   1), VALUE(  44,   6), VALUE(   7,   4), VALUE(  35, -21), VALUE(  94, -27),
+           VALUE( 107, -31), VALUE(  29,   0), VALUE(  55,  -6), VALUE(  31,   0), VALUE(  23,  -1), VALUE(   4,   8), VALUE(  -6,   0), VALUE(  30,  -8),
+           VALUE(  42,  -2), VALUE(  -5,  12), VALUE(  23,  17), VALUE(  75,   6), VALUE(  63,   8), VALUE(  70,   4), VALUE(  18,   8), VALUE(  90, -13),
+           VALUE(  93, -29), VALUE(  64,  -6), VALUE(  71,   1), VALUE(  52,   8), VALUE(  62,  10), VALUE(  67,   3), VALUE(  48,  -7), VALUE(  58, -12),
+           VALUE(  57, -17), VALUE(  49, -13), VALUE(  50,   0), VALUE(  60,   3), VALUE(  66,   2), VALUE(  51,  -3), VALUE(  44,  -7), VALUE(  39, -11),
+           VALUE( -15,  15), VALUE(  -7,  13), VALUE(   8,   5), VALUE(  -2,  17), VALUE(  13,   6), VALUE(  -2,  14), VALUE(  -9,   9), VALUE( -13,   8),
+           VALUE(  27,   5), VALUE(  -8,  22), VALUE(  -9,  20), VALUE(  23,  15), VALUE(  -8,  21), VALUE(  11,   9), VALUE( -17,  26), VALUE(  -8,  22)  }
+    };
+};
+
+
+
 #define NUMOFEVALPARAMS (sizeof(evalparamset) / sizeof(eval))
 
 struct evalparam {
@@ -514,7 +670,7 @@ void GetStackWalk(chessposition *pos, const char* message, const char* _File, in
 #ifdef EVALTUNE
 typedef void(*initevalfunc)(void);
 bool PGNtoFEN(string pgnfilename, bool quietonly, int ppg);
-void TexelTune(string fenfilename, bool noqs, bool bOptimizeK);
+void TexelTune(string fenfilename, bool noqs, bool bOptimizeK, bool bPreload);
 
 extern int tuningratio;
 
