@@ -32,7 +32,7 @@
 #define TDEBUG
 #endif
 
-#if 1
+#if 0
 #define EVALTUNE
 #endif
 
@@ -290,43 +290,43 @@ struct evalparamset {
     eval eTempo =  CVALUE(  20);
     eval eKingpinpenalty[6] = {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  38, -74), VALUE(  65, -61), VALUE( -29,  68), VALUE( -44, 163)  };
     eval ePawnstormblocked[4][5] = {
-        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -6,  -4), VALUE(  26, -11), VALUE(  30, -11)  },
-        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -3, -13), VALUE(  24, -19), VALUE(   8,  -8)  },
-        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(   6, -13), VALUE(  -9,   2), VALUE(  -5,   4)  },
-        {  VALUE(   0,   0), VALUE(   0,   0), VALUE( -25,  -3), VALUE(  -9,   7), VALUE(   9,  -1)  }
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE( -11,  14), VALUE(  25,   0), VALUE(  32, -11)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE( -10,  13), VALUE(   6,   5), VALUE(  -2,   9)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -6,   3), VALUE( -12,  10), VALUE( -10,   6)  },
+        {  VALUE(   0,   0), VALUE(   0,   0), VALUE( -13,  11), VALUE( -24,  13), VALUE( -21,   3)  }
     };
     eval ePawnstormfree[4][5] = {
-        {  VALUE(   9,  46), VALUE(  37,  67), VALUE( -33,  37), VALUE( -11,   8), VALUE(  -3,   4)  },
-        {  VALUE( -13,  64), VALUE( -32,  62), VALUE( -61,  31), VALUE( -10,   5), VALUE(   3,   3)  },
-        {  VALUE( -28,  45), VALUE( -12,  46), VALUE( -27,  14), VALUE( -12,   3), VALUE(  -4,   8)  },
-        {  VALUE(  31,  29), VALUE( -10,  57), VALUE( -19,   2), VALUE( -16,   5), VALUE( -13,  12)  }
+        {  VALUE(  22,  32), VALUE(  68,  34), VALUE(  19,   6), VALUE( -10,   9), VALUE(   4,   3)  },
+        {  VALUE( -19,  23), VALUE( -42,  39), VALUE( -36,  15), VALUE( -16,  18), VALUE(  -2,   9)  },
+        {  VALUE(   8,  14), VALUE(  -8,  32), VALUE( -11,   6), VALUE( -18,  14), VALUE( -11,  11)  },
+        {  VALUE(  16,  12), VALUE(  14,  25), VALUE( -15,   9), VALUE( -28,  23), VALUE( -29,  22)  }
     };
-    eval ePawnpushthreatbonus =  VALUE(  20,  13);
-    eval eSafepawnattackbonus =  VALUE(  66,  25);
+    eval ePawnpushthreatbonus =  VALUE(  17,  24);
+    eval eSafepawnattackbonus =  VALUE(  73,  30);
     eval eHangingpiecepenalty =  VALUE( -23, -36);
     eval ePassedpawnbonus[4][8] = {
-        {  VALUE(   0,   0), VALUE(  10,   4), VALUE(   0,   8), VALUE(  10,  25), VALUE(  35,  46), VALUE(  74,  81), VALUE(  44, 108), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE( -19,  -4), VALUE( -15,  12), VALUE(  -5,  17), VALUE(  17,  34), VALUE(  42,  60), VALUE( -12,  42), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   3,   7), VALUE(   6,  12), VALUE(  10,  41), VALUE(  26,  95), VALUE(  64, 197), VALUE( 105, 289), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   9,   7), VALUE(  -3,  19), VALUE(   1,  39), VALUE(  16,  54), VALUE(  58,  73), VALUE(  19,  69), VALUE(   0,   0)  }
+        {  VALUE(   0,   0), VALUE(  -3,  -3), VALUE( -11,   7), VALUE(   2,  13), VALUE(  38,  32), VALUE(  88,  78), VALUE(  17,  84), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -21,   5), VALUE( -13,   7), VALUE( -17,   4), VALUE(  15,  10), VALUE(  70,  42), VALUE(   4,  44), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  12,  -6), VALUE(   0,   6), VALUE(   7,  34), VALUE(  36, 110), VALUE(  77, 217), VALUE( 119, 222), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   6,   0), VALUE(  -8,   6), VALUE(  -8,   8), VALUE(   9,  22), VALUE(  55,  58), VALUE(  10,  64), VALUE(   0,   0)  }
     };
     eval eKingsupportspasserbonus[7][8] = {
-        {  VALUE(   0,   0), VALUE(  13,   7), VALUE(  30,  -6), VALUE(  57,  -6), VALUE(  72, -13), VALUE( 138, -32), VALUE( 143, -23), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  18,   7), VALUE(  -8,   7), VALUE(  10,   0), VALUE(  18, -21), VALUE( 107, -73), VALUE( 151, -70), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  21,  -3), VALUE(  -7,   0), VALUE(  -6, -16), VALUE( -15, -41), VALUE(  37, -82), VALUE( 122,-120), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   9,   6), VALUE(  -7,   7), VALUE(  -5, -17), VALUE( -28, -45), VALUE( -23, -79), VALUE(  34,-111), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  10,   3), VALUE(  11, -13), VALUE(   6, -22), VALUE(  -6, -62), VALUE( -57, -73), VALUE(  12,-104), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   9,   7), VALUE(  19,  -6), VALUE(  37, -29), VALUE(  -1, -52), VALUE(   1, -99), VALUE( -39, -67), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE( -11,  18), VALUE( -30,  21), VALUE(   9, -27), VALUE( -10, -61), VALUE( -17, -92), VALUE( -39, -97), VALUE(   0,   0)  }
+        {  VALUE(   0,   0), VALUE(  13,  15), VALUE( -16,  14), VALUE(   4,  -3), VALUE(  58, -22), VALUE(  72, -46), VALUE( 113, -58), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -11,  20), VALUE( -13,   4), VALUE(  -9,  -9), VALUE( -27, -18), VALUE(  29, -63), VALUE( 114, -77), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   6,   6), VALUE(   2,  -9), VALUE(  -6, -23), VALUE( -23, -36), VALUE( -40, -63), VALUE(  95,-102), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  12,   2), VALUE(   7, -10), VALUE(   2, -22), VALUE( -24, -54), VALUE( -41, -81), VALUE(  -2, -95), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  22,  -2), VALUE(  15,  -4), VALUE(  21, -23), VALUE(   5, -60), VALUE( -45, -83), VALUE(  -5, -94), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  27, -12), VALUE(  35, -17), VALUE(  40, -32), VALUE(  22, -69), VALUE( -13,-100), VALUE( -26, -87), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  24,  -6), VALUE(  16,  -5), VALUE(  29, -22), VALUE(  23, -69), VALUE(  -9, -93), VALUE( -23,-102), VALUE(   0,   0)  }
     };
     eval eKingdefendspasserpenalty[7][8] = {
-        {  VALUE(   0,   0), VALUE(  62,   4), VALUE( -15,  49), VALUE(  10,  16), VALUE(  -5,  37), VALUE(  36,  18), VALUE(  23, -18), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  37,   4), VALUE(  10,  -1), VALUE(  12,   4), VALUE(  40,   0), VALUE(  45,   7), VALUE(  16,  53), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  38,  -3), VALUE(  11,   1), VALUE(  11,   2), VALUE(  28,  18), VALUE(  56,  69), VALUE(  29,  97), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(  11,  -2), VALUE(   5,  -1), VALUE(   1,   5), VALUE(  21,  69), VALUE(  43, 118), VALUE(   3, 145), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   1, -13), VALUE(   0,  -3), VALUE(  -8,  40), VALUE(  14,  82), VALUE(  48, 121), VALUE(   9, 152), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE( -17,  -5), VALUE( -15,  15), VALUE(  -7,  31), VALUE(  13,  73), VALUE(   7, 143), VALUE(  34, 138), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE( -33,  -3), VALUE( -29,  18), VALUE( -11,  31), VALUE(   0,  70), VALUE(   6, 125), VALUE(  83,  77), VALUE(   0,   0)  }
+        {  VALUE(   0,   0), VALUE(  20,  20), VALUE(  44,  14), VALUE(   7,   9), VALUE(  24,   1), VALUE(  39,   8), VALUE(   7, -15), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   8,  -1), VALUE(   4,   7), VALUE(  13,   7), VALUE(  23,  12), VALUE(  51,  26), VALUE(  34,  53), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(  -8,   8), VALUE(  12,   0), VALUE(   8,  14), VALUE(  28,  30), VALUE(  41,  79), VALUE(  14, 101), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   2,  -5), VALUE(   8,   2), VALUE(   2,  19), VALUE(  16,  63), VALUE(  30, 104), VALUE(   4, 141), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -10,  -8), VALUE(   1,   1), VALUE( -16,  33), VALUE(   4,  79), VALUE(  51, 113), VALUE(  37, 155), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -15,  -6), VALUE( -22,  10), VALUE( -19,  34), VALUE(   4,  77), VALUE(  43, 115), VALUE(  26, 152), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE( -44,   3), VALUE( -28,  11), VALUE( -24,  33), VALUE(   3,  80), VALUE(  48, 115), VALUE(  14, 163), VALUE(   0,   0)  }
     };
     eval ePotentialpassedpawnbonus[2][8] = {
         {  VALUE(   0,   0), VALUE(  28, -15), VALUE(  -3,  14), VALUE(  17,   5), VALUE(  37,  60), VALUE(  75,  81), VALUE(  44, 108), VALUE(   0,   0)  },
@@ -336,14 +336,14 @@ struct evalparamset {
     eval eIsolatedpawnpenalty =  VALUE( -13, -12);
     eval eDoublepawnpenalty =  VALUE(  -9, -21);
     eval eConnectedbonus[6][6] = {
-        {  VALUE(   0,   0), VALUE(   9,  -2), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   2,   3), VALUE(  11,  12), VALUE(  23,  18), VALUE(  32,  22), VALUE(  51,  21)  },
-        {  VALUE(   0,   0), VALUE(  11,   4), VALUE(  14,   8), VALUE(  22,  13), VALUE(  22,   9), VALUE( -11,  11)  },
-        {  VALUE(   0,   0), VALUE(  15,  22), VALUE(  21,  16), VALUE(  35,  19), VALUE(  33,  16), VALUE( 113, -70)  },
-        {  VALUE(   0,   0), VALUE(  57,  97), VALUE(  50,  54), VALUE(  70,  71), VALUE(  33,  85), VALUE( -57, 253)  },
-        {  VALUE(   0,   0), VALUE(  38, 213), VALUE( 133,  99), VALUE(   7, 400), VALUE(   0, 578), VALUE(   0,   0)  }
+        {  VALUE(   0,   0), VALUE(  11, -10), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   3,   3), VALUE(   9,   0), VALUE(  17,  -3), VALUE(  23,  -4), VALUE(  19, -16)  },
+        {  VALUE(   0,   0), VALUE(  12,   0), VALUE(  14,   4), VALUE(  19,   0), VALUE(  23,   5), VALUE(  -2,  -2)  },
+        {  VALUE(   0,   0), VALUE(  15,  14), VALUE(  22,  13), VALUE(  24,   3), VALUE(  30,  12), VALUE(  15, -12)  },
+        {  VALUE(   0,   0), VALUE(  61,  61), VALUE(  35,  48), VALUE(  69,  73), VALUE(  42,  56), VALUE( -57, 253)  },
+        {  VALUE(   0,   0), VALUE( 131, 193), VALUE(  81, 107), VALUE(   7, 400), VALUE( 254,  33), VALUE(   0,   0)  }
     };
-    eval eBackwardpawnpenalty =  VALUE( -16, -11);
+    eval eBackwardpawnpenalty =  VALUE( -11, -16);
     eval eDoublebishopbonus =  VALUE(  56,  38);
     eval ePawnblocksbishoppenalty =  VALUE( -10, -18);
     eval eBishopcentercontrolbonus =  VALUE(  25,  13);
