@@ -386,16 +386,17 @@ bool Pawnhash::probeHash(U64 hash, pawnhashentry **entry)
     return false;
 }
 
-int collision;
+//int collision;
 
 bool  Materialhash::probeHash(U64 hash, Materialhashentry **entry)
 {
     *entry = &table[hash & MATERIALHASHMASK];
     if ((*entry)->hash == hash)
         return true;
-
+#if 0
     if ((*entry)->hash)
         printf("info string Alarm. Material hash collision: %d\n", ++collision);
+#endif
     (*entry)->hash = hash;
     (*entry)->scale[WHITE] = (*entry)->scale[BLACK] = SCALE_NORMAL;
     (*entry)->imbalance = 0;

@@ -231,6 +231,7 @@ int iImbalance = 0;
 int iAllCombinations = 0;
 
 
+#if 0
 inline void prepareMaterialHashEntry(Materialhashentry *e, int *pcs)
 {
     // Calculate scaling for endgames with special material
@@ -300,6 +301,8 @@ inline void prepareMaterialHashEntry(Materialhashentry *e, int *pcs)
         e->imbalance = mhestripped->imbalance;
 
 }
+#endif
+
 
 void getPieceCombinations(string sw, string sb, int mvw, int mvb, PieceType p, bool lesser, bool wasReduced)
 {
@@ -349,13 +352,13 @@ void getPieceCombinations(string sw, string sb, int mvw, int mvb, PieceType p, b
                 Materialhashentry *mhe;
                 int pcs[16];
                 getPcsFromStr((subw + "v" + subb).c_str(), pcs);
-                U64 hash = calc_key_from_pcs(pcs, 0);
-                bool gotMh = mh.probeHash(hash, &mhe);
 
 
                 // store special imbalance evaluation to material hash entries of reduced piece combinations  
                 for (int c = WHITE; c <= BLACK; c++)
                 {
+                    U64 hash = calc_key_from_pcs(pcs, c);
+                    bool gotMh = mh.probeHash(hash, &mhe);
                     mhe->imbalance = S2MSIGN(c) * eps.eImbalance[iImbalance];
                     printf("%016llx  ", hash);
                 }
@@ -869,11 +872,13 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
         { POPCOUNT(piece00[WROOK]),     POPCOUNT(piece00[BROOK]) },
         { POPCOUNT(piece00[WQUEEN]),    POPCOUNT(piece00[BQUEEN]) }
     };
+#if 0
     const int pawns[2] = { POPCOUNT(piece00[WPAWN]), POPCOUNT(piece00[BPAWN]) };
     const int knights[2] = { POPCOUNT(piece00[WKNIGHT]), POPCOUNT(piece00[BKNIGHT]) };
     const int bishops[2] = { POPCOUNT(piece00[WBISHOP]), POPCOUNT(piece00[BBISHOP]) };
     const int rooks[2] = { POPCOUNT(piece00[WROOK]), POPCOUNT(piece00[BROOK]) };
     const int queens[2] = { POPCOUNT(piece00[WQUEEN]), POPCOUNT(piece00[BQUEEN]) };
+#endif
     const int nonpawnvalue[2] = {
         piecenum[KNIGHT][WHITE] * materialvalue[KNIGHT]
         + piecenum[BISHOP][WHITE] * materialvalue[BISHOP]
@@ -905,25 +910,29 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
         e->scale[WHITE] = e->scale[BLACK] = SCALE_OCB;
     
     e->onlyPawns = (nonpawnvalue[WHITE] + nonpawnvalue[BLACK] == 0);
-    e->numOfPawns = piecenum[PAWN][WHITE] + piecenum[PAWN][WHITE];
+    e->numOfPawns = piecenum[PAWN][WHITE] + piecenum[PAWN][BLACK];
 
 #endif
-
+#if 1
     // get stripped material hash
     U64 strippedHash = e->hash;
-    for (PieceType p = QUEEN; p <= PAWN; p--)
+    for (PieceType p = PAWN; p <= QUEEN; p++)
     {
-        for (int i = min(piecenum[p][WHITE], piecenum[p][BLACK]); i; i--)
-            strippedHash ^= (zb.boardtable[(i << 4) | (p << 1)] ^ zb.boardtable[(i << 4) | (p << 1) | 1]);
+        int iw = piecenum[p][WHITE];
+        int ib = piecenum[p][BLACK];
+        for (; iw && ib; )
+            strippedHash ^= (zb.boardtable[(--iw << 4) | (p << 1)] ^ zb.boardtable[(--ib << 4) | (p << 1) | 1]);
     }
 
-    //printf("%016llx\n", strippedHash);
-    Materialhashentry *mhestripped;
-    if (mh.probeHash(strippedHash, &mhestripped) && mhestripped->imbalance)
+    Materialhashentry *mhestripped = &mh.table[strippedHash & MATERIALHASHMASK];
+    if (mhestripped->hash == strippedHash && mhestripped->imbalance)
+    {
+        printf("info string %016llx  -> %d\n", strippedHash, mhestripped->imbalance);
         e->imbalance = mhestripped->imbalance;
+    }
+#endif
 
-
-    return (*mhentry)->scale[col];
+    return e->scale[col];
 }
 
 // Explicit template instantiation
