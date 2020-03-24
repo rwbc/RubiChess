@@ -996,6 +996,7 @@ int main(int argc, char* argv[])
 #endif
 
     searchinit();
+    evalinit();
 
     cout.setf(ios_base::unitbuf);
 

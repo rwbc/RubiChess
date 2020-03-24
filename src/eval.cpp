@@ -225,7 +225,10 @@ static string splitvaluestring(int v[])
     return ss.str();
 }
 
+void evalinit()
+{
 
+}
 
 // get psqt for eval tracing and tuning
 void chessposition::getpsqval()

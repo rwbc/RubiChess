@@ -495,6 +495,7 @@ void registeralltuners(chessposition *pos);
 #define SCALE_OCB 32
 
 enum EvalType { NOTRACE, TRACE};
+void evalinit();
 
 //
 // utils stuff
