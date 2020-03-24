@@ -393,8 +393,11 @@ bool  Materialhash::probeHash(U64 hash, Materialhashentry **entry)
     if ((*entry)->hash == hash)
         return true;
 
+    if ((*entry)->hash)
+        printf("info string Alarm. Material hash collision.\n");
     (*entry)->hash = hash;
     (*entry)->scale[WHITE] = (*entry)->scale[BLACK] = SCALE_NORMAL;
+    (*entry)->imbalance = 0;
 
     return false;
 }

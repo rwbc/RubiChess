@@ -288,6 +288,7 @@ struct evalparamset {
     eval eComplexonlypawnsbonus =  EVALUE(  71);
     eval eComplexadjust =  EVALUE(-100);
     eval eTempo =  CVALUE(  20);
+    eval eImbalance[44] = { CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0), CVALUE(0) };
     eval eKingpinpenalty[6] = {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  38, -74), VALUE(  65, -61), VALUE( -29,  68), VALUE( -44, 163)  };
     eval ePawnstormblocked[4][5] = {
         {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -6,  -4), VALUE(  26, -11), VALUE(  30, -11)  },
@@ -610,7 +611,7 @@ public:
 };
 
 
-#define MATERIALHASHSIZE 0x10000
+#define MATERIALHASHSIZE 0x1000
 #define MATERIALHASHMASK (MATERIALHASHSIZE - 1)
 
 
@@ -619,6 +620,7 @@ struct Materialhashentry {
     int scale[2];
     bool onlyPawns;
     int numOfPawns;
+    int imbalance;
 };
 
 

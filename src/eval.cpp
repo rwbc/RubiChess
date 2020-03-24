@@ -22,6 +22,8 @@
 
 // static values for the search/pruning/material stuff
 const int materialvalue[7] = { 0,  100,  314,  314,  483,  913, 32509 };  // some evaluation depends on bishop value >= knight value!!!
+const int materialcount[7] = { 0, 8, 2, 2, 2, 1, 1 };
+const char materialchar[7] = { ' ', 'P', 'N', 'B', 'R', 'Q', 'K' };
 
 #ifdef EVALTUNE
 
@@ -225,10 +227,161 @@ static string splitvaluestring(int v[])
     return ss.str();
 }
 
-void evalinit()
+int iImbalance = 0;
+int iAllCombinations = 0;
+
+
+void prepareMaterialHashEntry(Materialhashentry *e, int piecenum[8][2])
 {
+    // Calculate scaling for endgames with special material
+#if 0
+    const int piecenum[8][2] = {
+        { 0, 0},
+        { POPCOUNT(piece00[WPAWN]),     POPCOUNT(piece00[BPAWN]) },
+        { POPCOUNT(piece00[WKNIGHT]),   POPCOUNT(piece00[BKNIGHT]) },
+        { POPCOUNT(piece00[WBISHOP]),   POPCOUNT(piece00[BBISHOP]) },
+        { POPCOUNT(piece00[WROOK]),     POPCOUNT(piece00[BROOK]) },
+        { POPCOUNT(piece00[WQUEEN]),    POPCOUNT(piece00[BQUEEN]) }
+    };
+#endif
+#if 0
+    const int pawns[2] = { POPCOUNT(piece00[WPAWN]), POPCOUNT(piece00[BPAWN]) };
+    const int knights[2] = { POPCOUNT(piece00[WKNIGHT]), POPCOUNT(piece00[BKNIGHT]) };
+    const int bishops[2] = { POPCOUNT(piece00[WBISHOP]), POPCOUNT(piece00[BBISHOP]) };
+    const int rooks[2] = { POPCOUNT(piece00[WROOK]), POPCOUNT(piece00[BROOK]) };
+    const int queens[2] = { POPCOUNT(piece00[WQUEEN]), POPCOUNT(piece00[BQUEEN]) };
+#endif
+    //(int[8][2])pcs;
+    const int nonpawnvalue[2] = {
+        piecenum[KNIGHT][WHITE] * materialvalue[KNIGHT]
+        + piecenum[BISHOP][WHITE] * materialvalue[BISHOP]
+        + piecenum[ROOK][WHITE] * materialvalue[ROOK]
+        + piecenum[QUEEN][WHITE] * materialvalue[QUEEN],
+        piecenum[KNIGHT][BLACK] * materialvalue[KNIGHT]
+        + piecenum[BISHOP][BLACK] * materialvalue[BISHOP]
+        + piecenum[ROOK][BLACK] * materialvalue[ROOK]
+        + piecenum[QUEEN][BLACK] * materialvalue[QUEEN]
+    };
+
+    // Check for insufficient material using simnple heuristic from chessprogramming site
+    for (int me = WHITE; me <= BLACK; me++)
+    {
+        int you = me ^ S2MMASK;
+
+        if (piecenum[PAWN][me] == 0 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
+            e->scale[me] = nonpawnvalue[me] < materialvalue[ROOK] ? SCALE_DRAW : SCALE_HARDTOWIN;
+
+        if (piecenum[PAWN][me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
+            e->scale[me] = SCALE_ONEPAWN;
+    }
+
+    U64 bishopsbb = (piece00[WBISHOP] | piece00[BBISHOP]);
+    if (piecenum[BISHOP][WHITE] == 1 && piecenum[BISHOP][BLACK] == 1
+        && (bishopsbb & WHITEBB) && (bishopsbb & BLACKBB)
+        && nonpawnvalue[WHITE] <= materialvalue[BISHOP]
+        && nonpawnvalue[BLACK] <= materialvalue[BISHOP])
+        e->scale[WHITE] = e->scale[BLACK] = SCALE_OCB;
+
+    e->onlyPawns = (nonpawnvalue[WHITE] + nonpawnvalue[BLACK] == 0);
+    e->numOfPawns = piecenum[PAWN][WHITE] + piecenum[PAWN][WHITE];
+
+
+
+    // get stripped material hash
+    U64 strippedHash = e->hash;
+    for (PieceType p = QUEEN; p <= PAWN; p--)
+    {
+        for (int i = min(piecenum[p][WHITE], piecenum[p][BLACK]); i; i--)
+            strippedHash ^= (zb.boardtable[(i << 4) | (p << 1)] ^ zb.boardtable[(i << 4) | (p << 1) | 1]);
+    }
+
+    printf("%016llx\n", strippedHash);
+    Materialhashentry *mhestripped;
+    if (mh.probeHash(strippedHash, &mhestripped));
 
 }
+
+void getPieceCombinations(string sw, string sb, int mvw, int mvb, PieceType p, bool lesser, bool wasReduced, int loop)
+{
+    string subw, subb;
+    int submvw, submvb;
+    bool isReduced;
+
+    for (int iw = 0; iw <= materialcount[p]; iw++)
+    {
+        subw = sw;
+        submvw = mvw;
+        for (int i = 0; i < iw; i++)
+        {
+            subw += materialchar[p];
+            submvw += materialvalue[p];
+        }
+        for (int ib = 0; ib <= materialcount[p]; ib++)
+        {
+            isReduced = wasReduced;
+            if (lesser) isReduced = isReduced && (ib <= iw);
+            isReduced = isReduced && !(ib && iw);
+
+            subb = sb;
+            submvb = mvb;
+            for (int i = 0; i < ib; i++)
+            {
+                subb += materialchar[p];
+                submvb += materialvalue[p];
+            }
+            if (p > PAWN)
+            {
+                bool newlesser = lesser && iw == ib;
+                getPieceCombinations(subw, subb, submvw, submvb, p - 1, newlesser, isReduced, loop);
+            }
+            else
+            {
+                // remove trivial (non-)imabalance
+                isReduced = isReduced && (submvw != submvb);
+                // remove large imbalance 
+                isReduced = isReduced && (abs(submvw - submvb) < 100);
+                // remove imbalance based on big pawn difference
+                isReduced = isReduced && (abs(iw - ib) < 4);
+
+                if (!loop && !isReduced)
+                    continue;
+
+                Materialhashentry *mhe;
+                int pcs[16];
+                getPcsFromStr((subw + "v" + subb).c_str(), pcs);
+                U64 hash = calc_key_from_pcs(pcs, 0);
+                bool gotMh = mh.probeHash(hash, &mhe);
+
+                if (loop == 0)
+                {
+                    // store special imbalance evaluation to material hash entries of reduced piece combinations  
+                    for (int c = WHITE; c <= BLACK; c++)
+                    {
+                        mhe->imbalance = S2MSIGN(c) * eps.eImbalance[iImbalance];
+                        printf("%016llx  ", hash);
+                    }
+                    cout << subw << "v" << subb << "  " << submvw << " / " << submvb << " " << iImbalance << "\n";
+                    iImbalance++;
+                    return;
+                }
+                // loop == 1; prepare all material hash entries
+                prepareMaterialHashEntry(mhe, pcs);
+                iAllCombinations++;
+            }
+        }
+    }
+}
+
+void evalinit()
+{
+    getPieceCombinations("K", "K", 0, 0, QUEEN, true, true, 0);
+    if (iImbalance != 44)
+        printf("info string Wrong number of imbalanced combinations: %d != 44\n", iImbalance);
+    getPieceCombinations("K", "K", 0, 0, QUEEN, true, true, 1);
+    printf("Total material combinations: %d\n", iAllCombinations);
+}
+
+
 
 // get psqt for eval tracing and tuning
 void chessposition::getpsqval()
@@ -713,20 +866,30 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
 
     Materialhashentry *e = *mhentry;
     // Calculate scaling for endgames with special material
+    const int piecenum[8][2] = {
+        { 0, 0},
+        { POPCOUNT(piece00[WPAWN]),     POPCOUNT(piece00[BPAWN]) },
+        { POPCOUNT(piece00[WKNIGHT]),   POPCOUNT(piece00[BKNIGHT]) },
+        { POPCOUNT(piece00[WBISHOP]),   POPCOUNT(piece00[BBISHOP]) },
+        { POPCOUNT(piece00[WROOK]),     POPCOUNT(piece00[BROOK]) },
+        { POPCOUNT(piece00[WQUEEN]),    POPCOUNT(piece00[BQUEEN]) }
+    };
+#if 0
     const int pawns[2] = { POPCOUNT(piece00[WPAWN]), POPCOUNT(piece00[BPAWN]) };
     const int knights[2] = { POPCOUNT(piece00[WKNIGHT]), POPCOUNT(piece00[BKNIGHT]) };
     const int bishops[2] = { POPCOUNT(piece00[WBISHOP]), POPCOUNT(piece00[BBISHOP]) };
     const int rooks[2] = { POPCOUNT(piece00[WROOK]), POPCOUNT(piece00[BROOK]) };
     const int queens[2] = { POPCOUNT(piece00[WQUEEN]), POPCOUNT(piece00[BQUEEN]) };
+#endif
     const int nonpawnvalue[2] = {
-        knights[WHITE] * materialvalue[KNIGHT]
-        + bishops[WHITE] * materialvalue[BISHOP]
-        + rooks[WHITE] * materialvalue[ROOK]
-        + queens[WHITE] * materialvalue[QUEEN],
-        knights[BLACK] * materialvalue[KNIGHT]
-        + bishops[BLACK] * materialvalue[BISHOP]
-        + rooks[BLACK] * materialvalue[ROOK]
-        + queens[BLACK] * materialvalue[QUEEN]
+        piecenum[KNIGHT][WHITE] * materialvalue[KNIGHT]
+        + piecenum[BISHOP][WHITE] * materialvalue[BISHOP]
+        + piecenum[ROOK][WHITE] * materialvalue[ROOK]
+        + piecenum[QUEEN][WHITE] * materialvalue[QUEEN],
+        piecenum[KNIGHT][BLACK] * materialvalue[KNIGHT]
+        + piecenum[BISHOP][BLACK] * materialvalue[BISHOP]
+        + piecenum[ROOK][BLACK] * materialvalue[ROOK]
+        + piecenum[QUEEN][BLACK] * materialvalue[QUEEN]
     };
 
     // Check for insufficient material using simnple heuristic from chessprogramming site
@@ -734,22 +897,23 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
     {
         int you = me ^ S2MMASK;
 
-        if (pawns[me] == 0 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
+        if (piecenum[PAWN][me] == 0 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
             e->scale[me] = nonpawnvalue[me] < materialvalue[ROOK] ? SCALE_DRAW : SCALE_HARDTOWIN;
 
-        if (pawns[me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
+        if (piecenum[PAWN][me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
             e->scale[me] = SCALE_ONEPAWN;
     }
 
     U64 bishopsbb = (piece00[WBISHOP] | piece00[BBISHOP]);
-    if (bishops[WHITE] == 1 && bishops[BLACK] == 1
+    if (piecenum[BISHOP][WHITE] == 1 && piecenum[BISHOP][BLACK] == 1
         && (bishopsbb & WHITEBB) && (bishopsbb & BLACKBB)
         && nonpawnvalue[WHITE] <= materialvalue[BISHOP]
         && nonpawnvalue[BLACK] <= materialvalue[BISHOP])
         e->scale[WHITE] = e->scale[BLACK] = SCALE_OCB;
     
-    e->onlyPawns = (nonpawnvalue[0] + nonpawnvalue[1] == 0);
-    e->numOfPawns = pawns[0] + pawns[1];
+    e->onlyPawns = (nonpawnvalue[WHITE] + nonpawnvalue[BLACK] == 0);
+    e->numOfPawns = piecenum[PAWN][WHITE] + piecenum[PAWN][WHITE];
+
 
     return e->scale[col];
 }
