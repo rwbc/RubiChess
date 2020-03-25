@@ -109,6 +109,11 @@ void registeralltuners(chessposition *pos)
 
     tuneIt = false;
     registertuner(pos, &eps.eTempo, "eTempo", 0, 0, 0, 0, tuneIt);
+
+    tuneIt = true;
+    for (i = 0; i < 45; i++)
+        registertuner(pos, &eps.eImbalance[i], "eImbalance", i, 45, 0, 0, i && tuneIt);
+
     tuneIt = false;
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eKingpinpenalty[i], "eKingpinpenalty", i, 6, 0, 0, tuneIt && (i > PAWN));
@@ -153,11 +158,11 @@ void registeralltuners(chessposition *pos)
     registertuner(pos, &eps.eBackwardpawnpenalty, "eBackwardpawnpenalty", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
     registertuner(pos, &eps.eDoublebishopbonus, "eDoublebishopbonus", 0, 0, 0, 0, tuneIt);
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.ePawnblocksbishoppenalty, "ePawnblocksbishoppenalty", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishopcentercontrolbonus, "eBishopcentercontrolbonus", 0, 0, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 4; i++)
         for (j = 0; j < 28; j++)
             registertuner(pos, &eps.eMobilitybonus[i][j], "eMobilitybonus", j, 28, i, 4, tuneIt && (j < maxmobility[i]));
@@ -352,18 +357,17 @@ void getPieceCombinations(string sw, string sb, int mvw, int mvb, PieceType p, b
                 Materialhashentry *mhe;
                 int pcs[16];
                 getPcsFromStr((subw + "v" + subb).c_str(), pcs);
-
+                iImbalance++;
 
                 // store special imbalance evaluation to material hash entries of reduced piece combinations  
                 for (int c = WHITE; c <= BLACK; c++)
                 {
                     U64 hash = calc_key_from_pcs(pcs, c);
                     bool gotMh = mh.probeHash(hash, &mhe);
-                    mhe->imbalance = S2MSIGN(c) * eps.eImbalance[iImbalance];
+                    mhe->imbalance = S2MSIGN(c) * iImbalance;
                     printf("%016llx  ", hash);
                 }
                 cout << subw << "v" << subb << "  " << submvw << " / " << submvb << " " << iImbalance << "\n";
-                iImbalance++;
                 return;
 
             }
@@ -813,6 +817,13 @@ int chessposition::getEval()
     }
 
     int score = TAPEREDANDSCALEDEVAL(totalEval, ph, sc) + CEVAL(eps.eTempo, S2MSIGN(state & S2MMASK));
+    if (pe.mhentry->imbalance)
+    {
+        int i = abs(pe.mhentry->imbalance);
+        int s = pe.mhentry->imbalance < 0 ? -1 : 1;
+        score += CEVAL(eps.eImbalance[i], s * S2MSIGN(state & S2MMASK));
+        //printf("%d  %s\n", pe.mhentry->imbalance, this->toFen().c_str());
+    }
 
     if (bTrace)
     {
@@ -927,7 +938,7 @@ int chessposition::getScaling(int col, Materialhashentry** mhentry)
     Materialhashentry *mhestripped = &mh.table[strippedHash & MATERIALHASHMASK];
     if (mhestripped->hash == strippedHash && mhestripped->imbalance)
     {
-        printf("info string %016llx  -> %d\n", strippedHash, mhestripped->imbalance);
+        //printf("info string %016llx  -> %d\n", strippedHash, mhestripped->imbalance);
         e->imbalance = mhestripped->imbalance;
     }
 #endif
