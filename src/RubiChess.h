@@ -288,12 +288,13 @@ struct evalparamset {
     eval eComplexonlypawnsbonus =  EVALUE(  71);
     eval eComplexadjust =  EVALUE(-100);
     eval eTempo =  CVALUE(  20);
-    eval eImbalance[45] = {  CVALUE(   0), CVALUE(  21), CVALUE(  14), CVALUE(   0), CVALUE(   1), CVALUE(  31), CVALUE(  57), CVALUE(  31),
-           CVALUE(   1), CVALUE( -29), CVALUE( -30), CVALUE( -31), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0),
-           CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0),
-           CVALUE( -14), CVALUE(   1), CVALUE(   1), CVALUE(  30), CVALUE(   0), CVALUE(  60), CVALUE(   0), CVALUE(   2),
-           CVALUE( 143), CVALUE(   0), CVALUE( 190), CVALUE(  14), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE( -31),
-           CVALUE(  62), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0)  };    eval eKingpinpenalty[6] = {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  38, -74), VALUE(  65, -61), VALUE( -29,  68), VALUE( -44, 163)  };
+    eval eImbalance[45] = {  CVALUE(   0), CVALUE(  -7), CVALUE(  -4), CVALUE(  30), CVALUE(  28), CVALUE(   2), CVALUE(   0), CVALUE(  -3),
+           CVALUE(  -1), CVALUE(   0), CVALUE(   1), CVALUE(   3), CVALUE(   0), CVALUE( 113), CVALUE( 120), CVALUE(   0),
+           CVALUE(   0), CVALUE(   0), CVALUE(   1), CVALUE( -77), CVALUE( -64), CVALUE(  14), CVALUE(   2), CVALUE(   0),
+           CVALUE(   0), CVALUE(   2), CVALUE(   7), CVALUE(   1), CVALUE( -31), CVALUE( -53), CVALUE(   0), CVALUE(   7),
+           CVALUE(-126), CVALUE(   0), CVALUE(  31), CVALUE(  33), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0),
+           CVALUE(  -2), CVALUE(   0), CVALUE(   0), CVALUE(   0), CVALUE(   0)  };
+    eval eKingpinpenalty[6] = {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  38, -74), VALUE(  65, -61), VALUE( -29,  68), VALUE( -44, 163)  };
     eval ePawnstormblocked[4][5] = {
         {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -6,  -4), VALUE(  26, -11), VALUE(  30, -11)  },
         {  VALUE(   0,   0), VALUE(   0,   0), VALUE(  -3, -13), VALUE(  24, -19), VALUE(   8,  -8)  },
