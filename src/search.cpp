@@ -257,6 +257,9 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     // Reset pv
     pvtable[ply][0] = 0;
 
+    // Reset statistics for grandchild node
+    stats[mstop + 2] = 0;
+
     STATISTICSINC(ab_n);
     STATISTICSADD(ab_pv, PVNode);
 
@@ -562,7 +565,6 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             continue;
         }
 
-        int stats = getHistory(m->code, ms.cmptr);
         int extendMove = 0;
 
         // Singular extension
@@ -592,15 +594,29 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             }
         }
 
+        stats[mstop] = getHistory(m->code, ms.cmptr);
+
         int reduction = 0;
 
         // Late move reduction
+        // 2000/ -2000 -> csos2
+        // next try: 8000 / -1000
+        const int goodstats = 2000;
+        const int badstats = -2000;
+
         if (depth > 2 && !ISTACTICAL(m->code))
         {
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
             // adjust reduction by stats value
-            reduction -= stats / 4096;
+            reduction -= stats[mstop] / 4096;
+
+            //printf("%6d  %6d\n", stats[mstop - 1], stats[mstop]);
+            // more reduction for a move with bad stats following on a move with good stats
+            reduction += (stats[mstop] < badstats && stats[mstop - 1] > goodstats);
+
+            // less reduction for a move with good stats following on a move with bad stats
+            reduction -= (stats[mstop] > goodstats && stats[mstop - 1] < badstats);
 
             // adjust reduction at PV nodes
             reduction -= PVNode;
@@ -610,7 +626,9 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
             STATISTICSINC(red_pi[positionImproved]);
             STATISTICSADD(red_lmr[positionImproved], reductiontable[positionImproved][depth][min(63, legalMoves + 1)]);
-            STATISTICSADD(red_history, -stats / 4096);
+            STATISTICSADD(red_history, -stats[mstop] / 4096);
+            STATISTICSADD(red_goodbadhistory[0], (stats[mstop] < badstats && stats[mstop - 1] > goodstats));
+            STATISTICSADD(red_goodbadhistory[1], -(stats[mstop] > goodstats && stats[mstop - 1] < badstats));
             STATISTICSADD(red_pv, -(int)PVNode);
             STATISTICSDO(int red0 = reduction);
 
@@ -711,6 +729,9 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                 }
 
                 STATISTICSINC(moves_fail_high);
+
+                // Reset statistic for this node
+                stats[mstop] = 0;
 
                 if (!excludeMove)
                     tp.addHash(newhash, FIXMATESCOREADD(score, ply), staticeval, HASHBETA, effectiveDepth, (uint16_t)bestcode);
@@ -1512,7 +1533,7 @@ inline void chessposition::CheckForImmediateStop()
 void search_statistics()
 {
     U64 n, i1, i2, i3;
-    double f0, f1, f2, f3, f4, f5, f6, f10, f11;
+    double f0, f1, f2, f3, f4, f5, f6, f10, f11, f20, f21;
 
     printf("(ST)====Statistics====================================================================================================================================\n");
 
@@ -1567,10 +1588,12 @@ void search_statistics()
     f11 = statistics.red_lmr[1] / (double)statistics.red_pi[1];
     f1 = (statistics.red_lmr[0] + statistics.red_lmr[1]) / (double)red_n;
     f2 = statistics.red_history / (double)red_n;
+    f20 = statistics.red_goodbadhistory[0] / (double)red_n;
+    f21 = statistics.red_goodbadhistory[1] / (double)red_n;
     f3 = statistics.red_pv / (double)red_n;
     f4 = statistics.red_correction / (double)red_n;
     f5 = statistics.red_total / (double)red_n;
-    printf("(ST) Reduct.  %12lld   lmr[0]: %4.2f   lmr[1]: %4.2f   lmr: %4.2f   hist: %4.2f   pv: %4.2f   corr: %4.2f   total: %4.2f\n", red_n, f10, f11, f1, f2, f3, f4, f5);
+    printf("(ST) Reduct.  %12lld   lmr[0]: %4.2f   lmr[1]: %4.2f   lmr: %4.2f   hist: %4.2f  gbh: %4.2f  bgh: %4.2f    pv: %4.2f   corr: %4.2f   total: %4.2f\n", red_n, f10, f11, f1, f2, f20, f21, f3, f4, f5);
 
     f0 = 100.0 * statistics.extend_singular / (double)n;
     printf("(ST) Extensions: %%singular: %7.4f\n", f0);

@@ -1022,6 +1022,7 @@ public:
     chessmovestack movestack[MAXMOVESEQUENCELENGTH];
     uint16_t excludemovestack[MAXMOVESEQUENCELENGTH];
     int16_t staticevalstack[MAXMOVESEQUENCELENGTH];
+    int stats[MAXMOVESEQUENCELENGTH];
     int mstop;      // 0 at last non-reversible move before root, rootheight at root position
     int ply;        // 0 at root position
     int rootheight; // fixed stack offset in root position 
@@ -1328,6 +1329,7 @@ struct statistic {
     U64 red_lmr[2];             // total late-move-reductions for (not) improved moves
     U64 red_pi[2];              // number of quiets moves that are reduced split into (not) / improved moves
     S64 red_history;            // total reduction by history
+    S64 red_goodbadhistory[2];  // total reduction increase/decrease for good->bad resp. bad->good stats sequence
     S64 red_pv;                 // total reduction by pv nodes
     S64 red_correction;         // total reduction correction by over-/underflow
 
