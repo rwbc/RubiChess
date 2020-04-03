@@ -594,20 +594,20 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             }
         }
 
-        stats[mstop] = getHistory(m->code, ms.cmptr);
-
         int reduction = 0;
 
         // Late move reduction
         // 2000/ -2000 -> csos2
         // 1000/ -1000 -> csos3
-        const int hisgoodstats = 3000;
+        const int hisgoodstats = 8000;
         const int mybadstats = -1000;
-        const int hisbadstats = 0;
-        const int mygoodstats = 0;
+        const int hisbadstats = -400;
+        const int mygoodstats = 400;
 
         if (depth > 2 && !ISTACTICAL(m->code))
         {
+            stats[mstop] = getHistory(m->code, ms.cmptr);
+
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
             // adjust reduction by stats value
@@ -618,7 +618,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             reduction += (stats[mstop] < mybadstats && stats[mstop - 1] > hisgoodstats);
 
             // less reduction for a move with good stats following on a move with bad stats
-            reduction -= (stats[mstop] > mygoodstats && stats[mstop - 1] < hisbadstats);
+            reduction -= (stats[mstop] >= mygoodstats && stats[mstop - 1] <= hisbadstats);
 
             // adjust reduction at PV nodes
             reduction -= PVNode;
@@ -630,7 +630,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             STATISTICSADD(red_lmr[positionImproved], reductiontable[positionImproved][depth][min(63, legalMoves + 1)]);
             STATISTICSADD(red_history, -stats[mstop] / 4096);
             STATISTICSADD(red_goodbadhistory[0], (stats[mstop] < mybadstats && stats[mstop - 1] > hisgoodstats));
-            STATISTICSADD(red_goodbadhistory[1], -(stats[mstop] > mygoodstats && stats[mstop - 1] < hisbadstats));
+            STATISTICSADD(red_goodbadhistory[1], -(stats[mstop] >= mygoodstats && stats[mstop - 1] <= hisbadstats));
             STATISTICSADD(red_pv, -(int)PVNode);
             STATISTICSDO(int red0 = reduction);
 
