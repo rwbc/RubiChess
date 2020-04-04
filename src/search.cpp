@@ -599,10 +599,10 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         // Late move reduction
         // 2000/ -2000 -> csos2
         // 1000/ -1000 -> csos3
-        const int hisgoodstats = 8000;
+        const int hisgoodstats = 4000;
         const int mybadstats = -1000;
-        const int hisbadstats = -400;
-        const int mygoodstats = 400;
+        const int hisbadstats = -200;
+        const int mygoodstats = 200;
 
         if (depth > 2 && !ISTACTICAL(m->code))
         {
