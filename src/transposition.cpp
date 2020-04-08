@@ -313,12 +313,12 @@ bool transposition::probeHash(U64 hash, int *val, int *staticeval, uint16_t *mov
             }
             if (bound == HASHALPHA && v <= alpha)
             {
-                *val = alpha;
+                *val = v;
                 return (e->depth >= depth);
             }
             if (bound == HASHBETA && v >= beta)
             {
-                *val = beta;
+                *val = v;
                 return (e->depth >= depth);
             }
             // value outside boundary
