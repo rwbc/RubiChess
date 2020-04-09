@@ -391,10 +391,6 @@ int chessposition::getFromFen(const char* sFen)
     hash = zb.getHash(this);
     pawnhash = zb.getPawnHash(this);
     materialhash = zb.getMaterialHash(this);
-    memset(history, 0, sizeof(history));
-    memset(counterhistory, 0, sizeof(counterhistory));
-    memset(killer, 0, sizeof(killer));
-    memset(countermove, 0, sizeof(countermove));
     mstop = 0;
     rootheight = 0;
     lastnullmove = -1;
@@ -2170,11 +2166,11 @@ void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t k
 {
     pos = p;
     hashmove.code = p->shortMove2FullMove(hshm);
-    if (kllm1 != hshm)
+    if (kllm1 != hashmove.code)
         killermove1.code = kllm1;
-    if (kllm2 != hshm)
+    if (kllm2 != hashmove.code)
         killermove2.code = kllm2;
-    if (counter != hshm && counter != kllm1 && counter != kllm2)
+    if (counter != hashmove.code && counter != kllm1 && counter != kllm2)
         countermove.code = counter;
     pos->getCmptr(&cmptr[0]);
     if (!excludemove)
@@ -2272,8 +2268,10 @@ chessmove* MoveSelector::next()
         {
             bool bBadTactical = (m->value & BADTACTICALFLAG);
             m->value = INT_MIN;
-            if (bBadTactical)
+            if (bBadTactical) {
+                STATISTICSDO(if (m->code == hashmove.code) STATISTICSINC(moves_bad_hash));
                 return m;
+            }
         }
         state++;
         // fall through
@@ -2360,6 +2358,7 @@ void engine::allocThreads()
     }
     allocPawnhash();
     prepareThreads();
+    resetStats();
 }
 
 
@@ -2367,7 +2366,8 @@ void engine::prepareThreads()
 {
     for (int i = 0; i < Threads; i++)
     {
-        sthread[i].pos = rootposition;
+        // copy new position to the threads copy but keep old history data
+        memcpy((void*)&sthread[i].pos, &rootposition, offsetof(chessposition, history));
         sthread[i].pos.threadindex = i;
         // early reset of variables that are important for bestmove selection
         sthread[i].pos.bestmovescore[0] = NOSCORE;
@@ -2375,6 +2375,16 @@ void engine::prepareThreads()
         sthread[i].pos.nodes = 0;
         sthread[i].pos.nullmoveply = 0;
         sthread[i].pos.nullmoveside = 0;
+    }
+}
+
+void engine::resetStats()
+{
+    for (int i = 0; i < Threads; i++)
+    {
+        memset(sthread[i].pos.history, 0, sizeof(chessposition::history));
+        memset(sthread[i].pos.counterhistory, 0, sizeof(chessposition::counterhistory));
+        memset(sthread[i].pos.countermove, 0, sizeof(chessposition::countermove));
     }
 }
 
@@ -2579,8 +2589,9 @@ void engine::communicate(string inputstring)
                 send("uciok\n", author);
                 break;
             case UCINEWGAME:
-                // invalidate hash
+                // invalidate hash and history
                 tp.clean();
+                resetStats();
                 sthread[0].pos.lastbestmovescore = NOSCORE;
                 break;
             case SETOPTION:
