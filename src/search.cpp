@@ -384,13 +384,15 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     prepareStack();
 
     // get static evaluation of the position
-    if (staticeval == NOSCORE)
+    bool ttMissesStaticEval = (staticeval == NOSCORE);
+    if (ttMissesStaticEval)
     {
         if (movestack[mstop - 1].movecode == 0)
             // just reverse the staticeval before the null move respecting the tempo
             staticeval = -staticevalstack[mstop - 1] + CEVAL(eps.eTempo, 2);
         else
             staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+        tp.addHash(newhash, NOSCORE, staticeval, HASHUNKNOWN, 0, 0);
     }
     staticevalstack[mstop] = staticeval;
 
