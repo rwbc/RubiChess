@@ -144,6 +144,9 @@ void registeralltuners(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.eIsolatedpawnpenalty, "eIsolatedpawnpenalty", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eDoublepawnpenalty, "eDoublepawnpenalty", 0, 0, 0, 0, tuneIt);
+    tuneIt = true;
+    for (i = 0; i < 4; i++)
+        registertuner(pos, &eps.eSpacebonus[i], "eSpacebonus", i, 4, 0, 0, tuneIt);
 
     tuneIt = false;
     for (i = 0; i < 6; i++)
@@ -157,7 +160,7 @@ void registeralltuners(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.ePawnblocksbishoppenalty, "ePawnblocksbishoppenalty", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishopcentercontrolbonus, "eBishopcentercontrolbonus", 0, 0, 0, 0, tuneIt);
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eKnightOutpost, "eKnightOutpost", 0, 0, 0, 0, tuneIt);
 
     tuneIt = false;
@@ -191,7 +194,7 @@ void registeralltuners(chessposition *pos)
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eKingringattack[i], "eKingringattack", i, 6, 0, 0, tuneIt);
     
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 7; i++)
         for (j = 0; j < 64; j++)
             registertuner(pos, &eps.ePsqt[i][j], "ePsqt", j, 64, i, 7, i==KNIGHT && j >= 16 && j < 40 && tuneIt && (i >= KNIGHT || (i == PAWN && j >= 8 && j < 56)));
@@ -331,9 +334,10 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
     while (pb)
     {
         index = pullLsb(&pb);
+        int pFile = FILE(index);
         entryptr->attackedBy2[Me] |= (entryptr->attacked[Me] & pawn_attacks_to[index][Me]);
         entryptr->attacked[Me] |= pawn_attacks_to[index][Me];
-        entryptr->semiopen[Me] &= (int)(~BITSET(FILE(index)));
+        entryptr->semiopen[Me] &= (int)(~BITSET(pFile));
 
         U64 yourStoppers = passedPawnMask[index][Me] & yourPawns;
         if (!yourStoppers)
@@ -384,6 +388,8 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
             {
                 entryptr->value += EVAL(eps.eConnectedbonus[RRANK(index, Me) - 1][POPCOUNT(supporting) * 2 + (bool)phalanx], S2MSIGN(Me));
                 if (bTrace) te.pawns[Me] += EVAL(eps.eConnectedbonus[RRANK(index, Me) - 1][POPCOUNT(supporting) * 2 + (bool)phalanx], S2MSIGN(Me));
+                entryptr->value += EVAL(eps.eSpacebonus[BORDERDIST(pFile)], S2MSIGN(Me) * POPCOUNT(filebarrierMask[index][You]));
+                if (bTrace) te.pawns[Me] += EVAL(eps.eSpacebonus[BORDERDIST(pFile)], S2MSIGN(Me) * POPCOUNT(filebarrierMask[index][You]));
             }
             if (!((passedPawnMask[index][You] | phalanxMask[index]) & myPawns))
             {
