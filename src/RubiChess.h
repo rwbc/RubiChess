@@ -351,14 +351,14 @@ struct evalparamset {
     eval eAttackingpawnbonus[8] = {  VALUE(   0,   0), VALUE( -32,  12), VALUE( -22, -12), VALUE(  -6,  -6), VALUE( -12,  -6), VALUE( -13,  -2), VALUE(   0,   0), VALUE(   0,   0)  };
     eval eIsolatedpawnpenalty =  VALUE( -13, -12);
     eval eDoublepawnpenalty =  VALUE(  -9, -21);
-    eval eSpacebonus =  VALUE(   1,   1);
+    eval eSpacebonus =  VALUE(   3,   1);
     eval eConnectedbonus[6][6] = {
-        {  VALUE(   0,   0), VALUE(  10,  -2), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
-        {  VALUE(   0,   0), VALUE(   4,   3), VALUE(  12,  12), VALUE(  28,  17), VALUE(  36,  20), VALUE(  56,  22)  },
-        {  VALUE(   0,   0), VALUE(  15,   4), VALUE(  16,   8), VALUE(  26,  16), VALUE(  26,   9), VALUE( -10,  14)  },
-        {  VALUE(   0,   0), VALUE(  21,  29), VALUE(  21,  16), VALUE(  44,  34), VALUE(  33,  17), VALUE( 117, -57)  },
-        {  VALUE(   0,   0), VALUE(  72,  98), VALUE(  53,  54), VALUE(  72,  80), VALUE(  35,  86), VALUE( -57, 253)  },
-        {  VALUE(   0,   0), VALUE(  38, 241), VALUE( 130, 110), VALUE(   7, 400), VALUE(   0, 641), VALUE(   0,   0)  }
+        {  VALUE(   0,   0), VALUE(  11,  -2), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
+        {  VALUE(   0,   0), VALUE(   5,   3), VALUE(  12,  13), VALUE(  29,  15), VALUE(  39,  21), VALUE(  61,  25)  },
+        {  VALUE(   0,   0), VALUE(  13,   4), VALUE(  16,   8), VALUE(  26,  14), VALUE(  25,  10), VALUE( -10,  12)  },
+        {  VALUE(   0,   0), VALUE(  18,  28), VALUE(  18,  17), VALUE(  42,  33), VALUE(  30,  19), VALUE( 120, -58)  },
+        {  VALUE(   0,   0), VALUE(  74, 103), VALUE(  51,  52), VALUE(  72,  77), VALUE(  36,  86), VALUE( -57, 253)  },
+        {  VALUE(   0,   0), VALUE(  25, 240), VALUE( 131, 106), VALUE(   7, 400), VALUE(   0, 642), VALUE(   0,   0)  }
     };
     eval eBackwardpawnpenalty =  VALUE( -16, -11);
     eval eDoublebishopbonus =  VALUE(  56,  38);
