@@ -509,7 +509,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
     // Get possible countermove from table
     uint32_t lastmove = movestack[mstop - 1].movecode;
-    uint32_t mylastmove = (mstop < 2) ? 0 : movestack[mstop - 2].movecode;
+    uint32_t mylastmove = (mstop < 2) ? 0xffffffff : movestack[mstop - 2].movecode;
     uint32_t counter = 0;
     if (lastmove)
         counter = countermove[GETPIECE(lastmove)][GETCORRECTTO(lastmove)];
@@ -626,7 +626,13 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             // adjust reduction with opponents move number
             reduction -= (LegalMoves[ply] > 15);
 
-            reduction += (!ISTACTICAL(mylastmove) && GETTO(mylastmove) == GETFROM(m->code) && GETFROM(mylastmove) == GETTO(m->code));
+            
+            if (!ISTACTICAL(mylastmove) && GETTO(mylastmove) == GETFROM(m->code))
+            {
+                reduction++;
+                if (GETFROM(mylastmove) == GETTO(m->code))
+                    reduction++;
+            }
 
             STATISTICSINC(red_pi[positionImproved]);
             STATISTICSADD(red_lmr[positionImproved], reductiontable[positionImproved][depth][min(63, legalMoves + 1)]);
