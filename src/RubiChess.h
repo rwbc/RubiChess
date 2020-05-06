@@ -362,20 +362,19 @@ struct evalparamset {
     eval eDoublebishopbonus =  VALUE(  56,  38);
     eval ePawnblocksbishoppenalty =  VALUE( -10, -18);
     eval eBishopcentercontrolbonus =  VALUE(  25,  13);
-    eval eKnightOutpost =  VALUE(  16,  16);
-    eval eKnightclosenessadjust[5] = {  VALUE(  -4,   8), VALUE(   7,  15), VALUE(   1,  15), VALUE(   0,  11), VALUE(   1,  30)  };
-    eval eRookclosenessadjust[5] = {  VALUE(   9,  40), VALUE(  33,  -2), VALUE(  43,  -5), VALUE(  23, -10), VALUE(   1, -15)  };
+    eval eKnightOutpost =  VALUE(  17,  10);
+    eval eKnightclosenessadjust[5] = {  VALUE(  -4,   1), VALUE(   6,  15), VALUE(   0,  16), VALUE(   0,  15), VALUE(   3,  27)  };
     eval eMobilitybonus[4][28] = {
-        {  VALUE( -19, -59), VALUE(  30, -28), VALUE(  50,  -1), VALUE(  59,  13), VALUE(  66,  26), VALUE(  70,  33), VALUE(  79,  35), VALUE(  87,  37),
-           VALUE(  85,  39), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
+        {  VALUE( -17, -65), VALUE(  31, -26), VALUE(  49,   0), VALUE(  58,  13), VALUE(  64,  27), VALUE(  69,  35), VALUE(  78,  35), VALUE(  86,  36),
+           VALUE(  84,  35), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
         {  VALUE(  -8, -25), VALUE(  23,  -7), VALUE(  45,   2), VALUE(  55,  21), VALUE(  65,  31), VALUE(  74,  35), VALUE(  80,  43), VALUE(  81,  50),
            VALUE(  86,  51), VALUE(  85,  58), VALUE(  86,  52), VALUE(  95,  55), VALUE( 100,  54), VALUE(  89,  60), VALUE(   0,   0), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
-        {  VALUE( -57,  10), VALUE(  14,  24), VALUE(  32,  60), VALUE(  34,  78), VALUE(  36,  82), VALUE(  36,  90), VALUE(  41,  93), VALUE(  44,  94),
-           VALUE(  47, 100), VALUE(  53, 106), VALUE(  53, 111), VALUE(  56, 116), VALUE(  56, 121), VALUE(  66, 112), VALUE(  43, 127), VALUE(   0,   0),
+        {  VALUE( -57,  11), VALUE(  14,  17), VALUE(  31,  57), VALUE(  34,  70), VALUE(  36,  82), VALUE(  38,  90), VALUE(  40,  92), VALUE(  46,  96),
+           VALUE(  47, 101), VALUE(  50, 111), VALUE(  54, 109), VALUE(  50, 115), VALUE(  49, 118), VALUE(  50, 116), VALUE(  44, 116), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
            VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
         {  VALUE(-4097,  83), VALUE(  13,-157), VALUE(  -2,  31), VALUE(   3,  75), VALUE(   5,  94), VALUE(   4, 152), VALUE(   6, 161), VALUE(  11, 177),
@@ -385,7 +384,7 @@ struct evalparamset {
     };
     eval eRookon7thbonus =  VALUE(  -1,  22);
     eval eMinorbehindpawn[6] = {  VALUE(   1,  14), VALUE(  12,  10), VALUE(  15,  11), VALUE(  24,   9), VALUE(  37,  11), VALUE(  89, 110)  };
-    eval eSlideronfreefilebonus[2] = {  VALUE(  21,   0), VALUE(  47,  -2)  };
+    eval eSlideronfreefilebonus[2] = {  VALUE(  21,   7), VALUE(  43,   1)  };
     eval eMaterialvalue[7] = {  VALUE(   0,   0), VALUE( 100, 100), VALUE( 314, 314), VALUE( 314, 314), VALUE( 483, 483), VALUE( 913, 913), VALUE(   0,   0)  };
     eval eKingshieldbonus =  VALUE(  15,  -2);
     eval eWeakkingringpenalty =  SQVALUE(   1,  70);

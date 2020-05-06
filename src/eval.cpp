@@ -163,13 +163,14 @@ void registeralltuners(chessposition *pos)
     tuneIt = true;
     for (i = 0; i < 5; i++)
         registertuner(pos, &eps.eKnightclosenessadjust[i], "eKnightclosenessadjust", i, 5, 0, 0, tuneIt);
+#if 0
     for (i = 0; i < 5; i++)
         registertuner(pos, &eps.eRookclosenessadjust[i], "eRookclosenessadjust", i, 5, 0, 0, tuneIt);
-
+#endif
     tuneIt = true;
     for (i = 0; i < 4; i++)
         for (j = 0; j < 28; j++)
-            registertuner(pos, &eps.eMobilitybonus[i][j], "eMobilitybonus", j, 28, i, 4, (i==0 || i==2) && tuneIt && (j < maxmobility[i]));
+            registertuner(pos, &eps.eMobilitybonus[i][j], "eMobilitybonus", j, 28, i, 4, i==0 && tuneIt && (j < maxmobility[i]));
 
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
@@ -178,7 +179,7 @@ void registeralltuners(chessposition *pos)
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eMinorbehindpawn[i], "eMinorbehindpawn", i, 6, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 2; i++)
         registertuner(pos, &eps.eSlideronfreefilebonus[i], "eSlideronfreefilebonus", i, 2, 0, 0, tuneIt);
     
@@ -667,9 +668,10 @@ int chessposition::getLateEval(positioneval *pe)
     // Closeness adjustment
     result += EVAL(eps.eKnightclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WKNIGHT | Me]));
     if (bTrace) te.mobility[Me] += EVAL(eps.eKnightclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WKNIGHT | Me]));
+#if 0
     result += EVAL(eps.eRookclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WROOK | Me]));
     if (bTrace) te.mobility[Me] += EVAL(eps.eRookclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WROOK | Me]));
-
+#endif
     return result;
 }
 
