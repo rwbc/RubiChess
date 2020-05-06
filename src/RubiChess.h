@@ -363,6 +363,8 @@ struct evalparamset {
     eval ePawnblocksbishoppenalty =  VALUE( -10, -18);
     eval eBishopcentercontrolbonus =  VALUE(  25,  13);
     eval eKnightOutpost =  VALUE(   15,  15);
+    eval eKnightclosenessadjust[5] = {  VALUE(  -4,   8), VALUE(   7,  15), VALUE(   1,  17), VALUE(   0,   8), VALUE(   0,  30)  };
+    eval eRookclosenessadjust[5] = {  VALUE(   9,  39), VALUE(  33,  -5), VALUE(  38,   4), VALUE(  23, -10), VALUE(   0, -16)  };
     eval eMobilitybonus[4][28] = {
         {  VALUE(  16, -90), VALUE(  38, -26), VALUE(  51,   1), VALUE(  57,  13), VALUE(  64,  27), VALUE(  71,  37), VALUE(  77,  36), VALUE(  84,  36),
            VALUE(  86,  30), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0),
@@ -603,14 +605,16 @@ public:
 
 
 typedef struct pawnhashentry {
-    uint32_t hashupper;
-    int32_t value;
     U64 passedpawnbb[2];
     U64 isolatedpawnbb[2];
     U64 backwardpawnbb[2];
+    U64 rammedpawnbb[2];
     U64 attacked[2];
     U64 attackedBy2[2];
+    int32_t value;
+    uint32_t hashupper;
     bool bothFlanks;
+    uint8_t closeness;
     unsigned char semiopen[2];
 } S_PAWNHASHENTRY;
 

@@ -157,8 +157,14 @@ void registeralltuners(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.ePawnblocksbishoppenalty, "ePawnblocksbishoppenalty", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishopcentercontrolbonus, "eBishopcentercontrolbonus", 0, 0, 0, 0, tuneIt);
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eKnightOutpost, "eKnightOutpost", 0, 0, 0, 0, tuneIt);
+
+    tuneIt = true;
+    for (i = 0; i < 5; i++)
+        registertuner(pos, &eps.eKnightclosenessadjust[i], "eKnightclosenessadjust", i, 5, 0, 0, tuneIt);
+    for (i = 0; i < 5; i++)
+        registertuner(pos, &eps.eRookclosenessadjust[i], "eRookclosenessadjust", i, 5, 0, 0, tuneIt);
 
     tuneIt = false;
     for (i = 0; i < 4; i++)
@@ -191,7 +197,7 @@ void registeralltuners(chessposition *pos)
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eKingringattack[i], "eKingringattack", i, 6, 0, 0, tuneIt);
     
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 7; i++)
         for (j = 0; j < 64; j++)
             registertuner(pos, &eps.ePsqt[i][j], "ePsqt", j, 64, i, 7, tuneIt && (i >= KNIGHT || (i == PAWN && j >= 8 && j < 56)));
@@ -327,6 +333,7 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
 
     const U64 yourPawns = piece00[pc ^ S2MMASK];
     const U64 myPawns = piece00[pc];
+    entryptr->rammedpawnbb[Me] = myPawns & PAWNPUSH(You, yourPawns);
     U64 pb = myPawns;
     while (pb)
     {
@@ -473,7 +480,6 @@ int chessposition::getPieceEval(positioneval *pe)
     const int pc = Pt * 2 + Me;
     U64 pb = piece00[pc];
     int index;
-    const U64 myRammedPawns = piece00[WPAWN | Me] & PAWNPUSH(You, piece00[WPAWN | You]);
 
     while (pb)
     {
@@ -500,7 +506,7 @@ int chessposition::getPieceEval(positioneval *pe)
 
             if (Pt == BISHOP)
             {
-                U64 blockingpawns = myRammedPawns & (BITSET(index) & WHITEBB ? WHITEBB : BLACKBB);
+                U64 blockingpawns = pe->phentry->rammedpawnbb[Me] & (BITSET(index) & WHITEBB ? WHITEBB : BLACKBB);
                 result += EVAL(eps.ePawnblocksbishoppenalty, S2MSIGN(Me) * POPCOUNT(blockingpawns));
                 if (bTrace) te.minors[Me] += EVAL(eps.ePawnblocksbishoppenalty, S2MSIGN(Me) * POPCOUNT(blockingpawns));
 
@@ -656,6 +662,11 @@ int chessposition::getLateEval(positioneval *pe)
         if (bTrace) te.minors[You] += EVAL(eps.eKnightOutpost, S2MSIGN(You) * POPCOUNT(outpost));
     }
 
+    // Closeness adjustment
+    result += EVAL(eps.eKnightclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WKNIGHT | Me]));
+    if (bTrace) te.mobility[Me] += EVAL(eps.eKnightclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WKNIGHT | Me]));
+    result += EVAL(eps.eRookclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WROOK | Me]));
+    if (bTrace) te.mobility[Me] += EVAL(eps.eRookclosenessadjust[pe->phentry->closeness], S2MSIGN(Me) * POPCOUNT(piece00[WROOK | Me]));
 
     return result;
 }
@@ -722,16 +733,19 @@ int chessposition::getEval()
     }
 
     hashexist = pwnhsh->probeHash(pawnhash, &pe.phentry);
+    pawnhashentry *phe = pe.phentry;
     if (bTrace || !hashexist)
     {
-        if (bTrace) pe.phentry->value = 0;
-        getPawnAndKingEval<Et, 0>(pe.phentry);
-        getPawnAndKingEval<Et, 1>(pe.phentry);
+        if (bTrace) phe->value = 0;
+        getPawnAndKingEval<Et, 0>(phe);
+        getPawnAndKingEval<Et, 1>(phe);
         U64 pawns = piece00[WPAWN] | piece00[BPAWN];
-        pe.phentry->bothFlanks = ((pawns & FLANKLEFT) && (pawns & FLANKRIGHT));
+        phe->bothFlanks = ((pawns & FLANKLEFT) && (pawns & FLANKRIGHT));
+        // factor for closeness
+        phe->closeness = max(0, min(4, (POPCOUNT(pawns) + 3 * POPCOUNT(phe->rammedpawnbb[WHITE]) - 5 * POPCOUNT(phe->semiopen[WHITE] & phe->semiopen[WHITE])) / 6));
     }
 
-    int pawnEval = pe.phentry->value;
+    int pawnEval = phe->value;
     int generalEval = getGeneralEval<Et, 0>(&pe) + getGeneralEval<Et, 1>(&pe);
     int piecesEval = getPieceEval<Et, KNIGHT, 0>(&pe)   + getPieceEval<Et, KNIGHT, 1>(&pe)
                     + getPieceEval<Et, BISHOP, 0>(&pe) + getPieceEval<Et, BISHOP, 1>(&pe)
@@ -747,7 +761,7 @@ int chessposition::getEval()
     if (!bTrace && sc == SCALE_DRAW)
         return SCOREDRAW;
 
-    int complexity = getComplexity(totalEval, pe.phentry, pe.mhentry);
+    int complexity = getComplexity(totalEval, phe, pe.mhentry);
     totalEval += complexity;
 
     if (bTrace)
