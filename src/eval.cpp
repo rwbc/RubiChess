@@ -180,7 +180,7 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eAttackingpawnbonus[i], "eAttackingpawnbonus", i, 8, 0, 0, tuneIt && (i > 0 && i < 7));
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eIsolatedpawnpenalty[i], "eIsolatedpawnpenalty", i, 8, 0, 0, tuneIt);
     tuneIt = false;
@@ -191,7 +191,7 @@ void registerallevals(chessposition *pos)
             registertuner(pos, &eps.eConnectedbonus[i][j], "eConnectedbonus", j, 6, i, 6, tuneIt);
     tuneIt = false;
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eBackwardpawnpenalty[i], "eBackwardpawnpenalty", i, 8, 0, 0, tuneIt);
     tuneIt = false;
@@ -199,8 +199,9 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.ePawnblocksbishoppenalty, "ePawnblocksbishoppenalty", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishopcentercontrolbonus, "eBishopcentercontrolbonus", 0, 0, 0, 0, tuneIt);
-    tuneIt = false;
-    registertuner(pos, &eps.eKnightOutpost, "eKnightOutpost", 0, 0, 0, 0, tuneIt);
+    tuneIt = true;
+    for (i = 0; i < 9; i++)
+        registertuner(pos, &eps.eKnightOutpost[i], "eKnightOutpost", i, 9, 0, 0, tuneIt);
 
     tuneIt = false;
     for (i = 0; i < 4; i++)
@@ -701,8 +702,9 @@ int chessposition::getLateEval(positioneval *pe)
     U64 outpost = piece00[WKNIGHT | You] & OUTPOSTAREA(You) & attackedBy[You][PAWN] & ~(attackedPieces | attackedBy[Me][PAWN]);
     if (outpost)
     {
-        result += EVAL(eps.eKnightOutpost, S2MSIGN(You) * POPCOUNT(outpost));
-        if (bTrace) te.minors[You] += EVAL(eps.eKnightOutpost, S2MSIGN(You) * POPCOUNT(outpost));
+        int sev = pe->mhentry->numOfPawns / 2;
+        result += EVAL(eps.eKnightOutpost[sev], S2MSIGN(You) * POPCOUNT(outpost));
+        if (bTrace) te.minors[You] += EVAL(eps.eKnightOutpost[sev], S2MSIGN(You) * POPCOUNT(outpost));
     }
 
 
