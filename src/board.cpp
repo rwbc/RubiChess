@@ -903,7 +903,7 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
     return true;
 }
 
-
+#if 0
 void chessposition::updatePins()
 {
     kingPinned = 0ULL;
@@ -924,7 +924,7 @@ void chessposition::updatePins()
         }
     }
 }
-
+#endif
 
 bool chessposition::moveGivesCheck(uint32_t c)
 {
@@ -1917,7 +1917,7 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
     return (int)(m - mstart);
 }
 
-
+#if 0
 int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
 {
     chessmove* m = mstart;
@@ -1998,7 +1998,7 @@ int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
     }
     return (int)(m - mstart);
 }
-
+#endif
 
 template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart)
 {
@@ -2260,8 +2260,10 @@ void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t k
         captures = &pos->singularcaptureslist[pos->ply];
         quiets = &pos->singularquietslist[pos->ply];
     }
+#if 0
     if (p->isCheckbb)
         state = EVASIONINITSTATE;
+#endif
 }
 
 
@@ -2354,6 +2356,7 @@ chessmove* MoveSelector::next()
         // fall through
     case BADTACTICALEND:
         return nullptr;
+#if 0
     case EVASIONINITSTATE:
         state++;
         captures->length = CreateEvasionMovelist(pos, &captures->move[0]);
@@ -2367,6 +2370,7 @@ chessmove* MoveSelector::next()
         }
         state++;
         // fall through
+#endif
     default:
         return nullptr;
     }
