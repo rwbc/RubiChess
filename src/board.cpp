@@ -445,7 +445,7 @@ int chessposition::getFromFen(const char* sFen)
     }
 
     isCheckbb = isAttackedBy<OCCUPIED>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
-    updatePins();
+    //updatePins();
 
     hash = zb.getHash(this);
     pawnhash = zb.getPawnHash(this);
@@ -705,7 +705,7 @@ void chessposition::mirror()
     kingpos[0] = kingpos[1] ^ RANKMASK;
     kingpos[1] = kingpostemp ^ RANKMASK;
     materialhash = zb.getMaterialHash(this);
-    updatePins();
+    //updatePins();
 }
 
 
@@ -1678,7 +1678,7 @@ bool chessposition::playMove(chessmove *cm)
     ply++;
     movestack[mstop++].movecode = cm->code;
     myassert(mstop < MAXMOVESEQUENCELENGTH, this, 1, mstop);
-    updatePins();
+    //updatePins();
 
     return true;
 }

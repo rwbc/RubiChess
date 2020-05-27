@@ -287,7 +287,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         } else {
             // special case: test for checkmate
             chessmovelist evasions;
-            if (CreateEvasionMovelist(this, &evasions.move[0]) > 0)
+            if (CreateMovelist<ALL>(this, &evasions.move[0]) > 0)
                 return SCOREDRAW;
             else
                 return SCOREBLACKWINS + ply;

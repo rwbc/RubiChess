@@ -782,6 +782,7 @@ int chessposition::getEval()
 
     int pawnEval = pe.phentry->value;
     int generalEval = getGeneralEval<Et, 0>(&pe) + getGeneralEval<Et, 1>(&pe);
+    updatePins();
     int piecesEval = getPieceEval<Et, KNIGHT, 0>(&pe)   + getPieceEval<Et, KNIGHT, 1>(&pe)
                     + getPieceEval<Et, BISHOP, 0>(&pe) + getPieceEval<Et, BISHOP, 1>(&pe)
                     + getPieceEval<Et, ROOK, 0>(&pe)   + getPieceEval<Et, ROOK, 1>(&pe)
