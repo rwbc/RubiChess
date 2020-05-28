@@ -952,8 +952,8 @@ void chessposition::updatePins()
         int you = me ^ S2MMASK;
         int k = kingpos[me];
         U64 occ = occupied00[you];
-        U64 attackers = MAGICROOKATTACKS(occ, k) & (piece00[WROOK | you] | piece00[WQUEEN | you]);
-        attackers |= MAGICBISHOPATTACKS(occ, k) & (piece00[WBISHOP | you] | piece00[WQUEEN | you]);
+        U64 attackers = rookAttacks(occ, k) & (piece00[WROOK | you] | piece00[WQUEEN | you]);
+        attackers |= bishopAttacks(occ, k) & (piece00[WBISHOP | you] | piece00[WQUEEN | you]);
         
         while (attackers)
         {
@@ -1825,9 +1825,9 @@ template <PieceType Pt> int CreateMovelistPiece(chessposition *pos, chessmove* m
         if (Pt == KNIGHT)
             tobits = (knight_attacks[from] & targets);
         if (Pt == BISHOP || Pt == QUEEN)
-            tobits |= (MAGICBISHOPATTACKS(occ, from) & targets);
+            tobits |= (pos->bishopAttacks(occ, from) & targets);
         if (Pt == ROOK || Pt == QUEEN)
-            tobits |= (MAGICROOKATTACKS(occ, from) & targets);
+            tobits |= (pos->rookAttacks(occ, from) & targets);
         if (Pt == KING)
             tobits = (king_attacks[from] & targets);
         while (tobits)
@@ -2079,11 +2079,11 @@ U64 chessposition::movesTo(PieceCode pc, int from)
     case KNIGHT:
         return knight_attacks[from];
     case BISHOP:
-        return MAGICBISHOPATTACKS(occ, from);
+        return bishopAttacks(occ, from);
     case ROOK:
-        return MAGICROOKATTACKS(occ, from);
+        return rookAttacks(occ, from);
     case QUEEN:
-        return MAGICBISHOPATTACKS(occ, from) | MAGICROOKATTACKS(occ, from);
+        return bishopAttacks(occ, from) | rookAttacks(occ, from);
     case KING:
         return king_attacks[from];
     default:
@@ -2101,11 +2101,11 @@ U64 chessposition::pieceMovesTo(int from)
     case KNIGHT:
         return knight_attacks[from];
     case BISHOP:
-        return MAGICBISHOPATTACKS(occ, from);
+        return bishopAttacks(occ, from);
     case ROOK:
-        return MAGICROOKATTACKS(occ, from);
+        return rookAttacks(occ, from);
     case QUEEN:
-        return MAGICBISHOPATTACKS(occ, from) | MAGICROOKATTACKS(occ, from);
+        return bishopAttacks(occ, from) | rookAttacks(occ, from);
     default:
         return 0ULL;
     }
@@ -2117,8 +2117,8 @@ template <AttackType At> U64 chessposition::isAttackedBy(int index, int col)
 {
     U64 occ = occupied00[0] | occupied00[1];
     return (knight_attacks[index] & piece00[WKNIGHT | col])
-        | (MAGICROOKATTACKS(occ, index) & (piece00[WROOK | col] | piece00[WQUEEN | col]))
-        | (MAGICBISHOPATTACKS(occ, index) & (piece00[WBISHOP | col] | piece00[WQUEEN | col]))
+        | (rookAttacks(occ, index) & (piece00[WROOK | col] | piece00[WQUEEN | col]))
+        | (bishopAttacks(occ, index) & (piece00[WBISHOP | col] | piece00[WQUEEN | col]))
         | (piece00[WPAWN | col] & (At != FREE ?
             pawn_attacks_from[index][col] :
             pawn_moves_from[index][col] | (pawn_moves_from_double[index][col] & PAWNPUSH(col ^ S2MMASK, ~occ))))
@@ -2133,15 +2133,15 @@ bool chessposition::isAttacked(int index, int Me)
     return knight_attacks[index] & piece00[WKNIGHT | opponent]
         || king_attacks[index] & piece00[WKING | opponent]
         || pawn_attacks_to[index][state & S2MMASK] & piece00[(PAWN << 1) | opponent]
-        || MAGICROOKATTACKS(occupied00[0] | occupied00[1], index) & (piece00[WROOK | opponent] | piece00[WQUEEN | opponent])
-        || MAGICBISHOPATTACKS(occupied00[0] | occupied00[1], index) & (piece00[WBISHOP | opponent] | piece00[WQUEEN | opponent]);
+        || rookAttacks(occupied00[0] | occupied00[1], index) & (piece00[WROOK | opponent] | piece00[WQUEEN | opponent])
+        || bishopAttacks(occupied00[0] | occupied00[1], index) & (piece00[WBISHOP | opponent] | piece00[WQUEEN | opponent]);
 }
 
 // used for checkevasion test, could be usefull for discovered check test
 U64 chessposition::isAttackedByMySlider(int index, U64 occ, int me)
 {
-    return (MAGICROOKATTACKS(occ, index) & (piece00[WROOK | me] | piece00[WQUEEN | me]))
-        | (MAGICBISHOPATTACKS(occ, index) & (piece00[WBISHOP | me] | piece00[WQUEEN | me]));
+    return (rookAttacks(occ, index) & (piece00[WROOK | me] | piece00[WQUEEN | me]))
+        | (bishopAttacks(occ, index) & (piece00[WBISHOP | me] | piece00[WQUEEN | me]));
 }
 
 
@@ -2151,8 +2151,8 @@ U64 chessposition::attackedByBB(int index, U64 occ)
         | (king_attacks[index] & (piece00[WKING] | piece00[BKING]))
         | (pawn_attacks_to[index][1] & piece00[WPAWN])
         | (pawn_attacks_to[index][0] & piece00[BPAWN])
-        | (MAGICROOKATTACKS(occ, index) & (piece00[WROOK] | piece00[BROOK] | piece00[WQUEEN] | piece00[BQUEEN]))
-        | (MAGICBISHOPATTACKS(occ, index) & (piece00[WBISHOP] | piece00[BBISHOP] | piece00[WQUEEN] | piece00[BQUEEN]));
+        | (rookAttacks(occ, index) & (piece00[WROOK] | piece00[BROOK] | piece00[WQUEEN] | piece00[BQUEEN]))
+        | (bishopAttacks(occ, index) & (piece00[WBISHOP] | piece00[BBISHOP] | piece00[WQUEEN] | piece00[BQUEEN]));
 }
 
 
@@ -2213,9 +2213,9 @@ bool chessposition::see(uint32_t move, int threshold)
 
         // Add new shifting attackers but exclude already moved attackers using current seeOccupied
         if ((nextPiece & 0x1) || nextPiece == KING)  // pawn, bishop, queen, king
-            attacker |= (MAGICBISHOPATTACKS(seeOccupied, to) & potentialBishopAttackers);
+            attacker |= (bishopAttacks(seeOccupied, to) & potentialBishopAttackers);
         if (nextPiece == ROOK || nextPiece == QUEEN || nextPiece == KING)
-            attacker |= (MAGICROOKATTACKS(seeOccupied, to) & potentialRookAttackers);
+            attacker |= (rookAttacks(seeOccupied, to) & potentialRookAttackers);
 
         // Remove attacker
         attacker &= seeOccupied;

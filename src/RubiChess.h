@@ -40,7 +40,7 @@
 #define EVALOPTIONS
 #endif
 
-#if 1
+#if 0
 #define FINDMEMORYLEAKS
 #endif
 
@@ -1176,8 +1176,8 @@ public:
     string getPv(uint32_t *table);
     int getHistory(uint32_t code, int16_t **cmptr);
     inline void CheckForImmediateStop();
-    virtual U64 rookAttacks(U64 occ, int from) = 0;
-    virtual U64 bishopAttacks(U64 occ, int from) = 0;
+    virtual inline U64 rookAttacks(U64 occ, int from) = 0;
+    virtual inline U64 bishopAttacks(U64 occ, int from) = 0;
 
 
 #ifdef SDEBUG
@@ -1191,10 +1191,10 @@ public:
 
 class chessposition_magic : public chessposition
 {
-    U64 rookAttacks(U64 occ, int from) {
+    inline U64 rookAttacks(U64 occ, int from) {
         return     MAGICROOKATTACKS(occ, from);
     }
-    U64 bishopAttacks(U64 occ, int from) {
+    inline U64 bishopAttacks(U64 occ, int from) {
         return     MAGICBISHOPATTACKS(occ, from);
     }
 
