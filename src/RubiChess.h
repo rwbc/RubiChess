@@ -1019,7 +1019,7 @@ extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 enum MoveType { QUIET = 1, CAPTURE = 2, PROMOTE = 4, TACTICAL = 6, ALL = 7 };
 enum RootsearchType { SinglePVSearch, MultiPVSearch, PonderSearch };
 
-//int CreateEvasionMovelist(chessposition *pos, chessmove* mstart);
+int CreateEvasionMovelist(chessposition *pos, chessmove* mstart);
 template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart);
 template <PieceType Pt> inline int CreateMovelistPiece(chessposition *pos, chessmove* mstart, U64 occ, U64 targets, int me);
 template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmove* mstart, int me);

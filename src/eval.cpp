@@ -523,6 +523,7 @@ int chessposition::getPieceEval(positioneval *pe)
     U64 pb = piece00[pc];
     int index;
     const U64 myRammedPawns = piece00[WPAWN | Me] & PAWNPUSH(You, piece00[WPAWN | You]);
+    U64 occupied = occupied00[0] | occupied00[1];
 
     while (pb)
     {
@@ -530,7 +531,6 @@ int chessposition::getPieceEval(positioneval *pe)
         U64 attack = 0ULL;
         if (Pt == ROOK || Pt == QUEEN)
         {
-            U64 occupied = occupied00[0] | occupied00[1];
             U64 xrayrookoccupied = occupied ^ (piece00[WROOK + Me] | piece00[WQUEEN + Me]);
             attack = MAGICROOKATTACKS(xrayrookoccupied, index);
 
@@ -543,7 +543,6 @@ int chessposition::getPieceEval(positioneval *pe)
 
         if (Pt == BISHOP || Pt == QUEEN)
         {
-            U64 occupied = occupied00[0] | occupied00[1];
             U64 xraybishopoccupied = occupied ^ (piece00[WBISHOP + Me] | piece00[WQUEEN + Me]);
             attack |= MAGICBISHOPATTACKS(xraybishopoccupied, index);
 
@@ -589,7 +588,9 @@ int chessposition::getPieceEval(positioneval *pe)
         U64 mobility = attack & goodMobility;
 
         // Penalty for a piece pinned in front of the king
-        if (false)//kingPinned & (BITSET(index)))
+        bool isPinned = (isAttackedByMySlider(kingpos[Me], occupied ^ BITSET(index), You));
+
+        if (isPinned)//kingPinned & (BITSET(index)))
         {
             result += EVAL(eps.eKingpinpenalty[Pt], S2MSIGN(Me));
             if (bTrace) te.mobility[Me] += EVAL(eps.eKingpinpenalty[Pt], S2MSIGN(Me));

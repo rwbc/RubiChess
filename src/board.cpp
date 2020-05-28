@@ -1917,7 +1917,7 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
     return (int)(m - mstart);
 }
 
-#if 0
+#if 1
 int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
 {
     chessmove* m = mstart;
@@ -1965,7 +1965,7 @@ int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
         targetbits = betweenMask[king][attacker];
         while (true)
         {
-            frombits = frombits & ~pos->kingPinned;
+            //frombits = frombits & ~pos->kingPinned;
             while (frombits)
             {
                 from = pullLsb(&frombits);
@@ -2260,7 +2260,7 @@ void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t k
         captures = &pos->singularcaptureslist[pos->ply];
         quiets = &pos->singularquietslist[pos->ply];
     }
-#if 0
+#if 1
     if (p->isCheckbb)
         state = EVASIONINITSTATE;
 #endif
@@ -2356,7 +2356,7 @@ chessmove* MoveSelector::next()
         // fall through
     case BADTACTICALEND:
         return nullptr;
-#if 0
+#if 1
     case EVASIONINITSTATE:
         state++;
         captures->length = CreateEvasionMovelist(pos, &captures->move[0]);
