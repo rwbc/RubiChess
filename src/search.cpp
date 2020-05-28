@@ -1043,7 +1043,7 @@ static void uciScore(searchthread *thr, int inWindow, U64 nowtime, int score, in
 
     const char* boundscore[] = { "upperbound", "", "lowerbound" };
     char s[4096];
-    chessposition *pos = &thr->pos;
+    chessposition *pos = thr->pos;
     en.lastReport = msRun;
     string pvstring = pos->getPv(mpvIndex ? pos->multipvtable[mpvIndex] : pos->lastpv);
     U64 nodes = en.getTotalNodes();
@@ -1088,7 +1088,7 @@ static void search_gen1(searchthread *thr)
     const bool doPonder = (RT == PonderSearch);
     const bool isMainThread = (thr->index == 0);
 
-    chessposition *pos = &thr->pos;
+    chessposition *pos = thr->pos;
 
     if (en.mate > 0)  // FIXME: Not tested for a long time.
     {
@@ -1310,32 +1310,32 @@ static void search_gen1(searchthread *thr)
 #endif
         // Output of best move
         searchthread *bestthr = thr;
-        int bestscore = bestthr->pos.bestmovescore[0];
+        int bestscore = bestthr->pos->bestmovescore[0];
         for (int i = 1; i < en.Threads; i++)
         {
             // search for a better score in the other threads
             searchthread *hthr = &en.sthread[i];
             if (hthr->lastCompleteDepth >= bestthr->lastCompleteDepth
-                && hthr->pos.bestmovescore[0] > bestscore)
+                && hthr->pos->bestmovescore[0] > bestscore)
             {
-                bestscore = hthr->pos.bestmovescore[0];
+                bestscore = hthr->pos->bestmovescore[0];
                 bestthr = hthr;
             }
         }
-        if (pos->bestmove.code != bestthr->pos.bestmove.code)
+        if (pos->bestmove.code != bestthr->pos->bestmove.code)
         {
             // copy best moves and score from best thread to thread 0
             int i = 0;
-            while (bestthr->pos.lastpv[i])
+            while (bestthr->pos->lastpv[i])
             {
-                pos->lastpv[i] = bestthr->pos.lastpv[i];
+                pos->lastpv[i] = bestthr->pos->lastpv[i];
                 i++;
                 if (i == MAXDEPTH - 1) break;
             }
             pos->lastpv[i] = 0;
-            pos->bestmove = bestthr->pos.bestmove;
-            if (doPonder) pos->pondermove = bestthr->pos.pondermove;
-            pos->bestmovescore[0] = bestthr->pos.bestmovescore[0];
+            pos->bestmove = bestthr->pos->bestmove;
+            if (doPonder) pos->pondermove = bestthr->pos->pondermove;
+            pos->bestmovescore[0] = bestthr->pos->bestmovescore[0];
             inWindow = 1;
             //printf("info string different bestmove from helper  lastpv:%x\n", bestthr->pos.lastpv[0]);
         }
@@ -1405,7 +1405,7 @@ void resetEndTime(int constantRootMoves, bool complete)
         en.endtime2 = en.starttime + min(max(0, timetouse - overhead * en.movestogo), f2 * timetouse / (en.movestogo + 1) / 10) * en.frequency / 1000;
     }
     else if (timetouse) {
-        int ph = en.sthread[0].pos.phase();
+        int ph = en.sthread[0].pos->phase();
         if (timeinc)
         {
             // sudden death with increment; split the remaining time in (256-phase) timeslots
@@ -1455,7 +1455,7 @@ void searchStart()
     startSearchTime();
 
     en.moveoutput = false;
-    en.tbhits = en.sthread[0].pos.tbPosition;  // Rootpos in TB => report at least one tbhit
+    en.tbhits = en.sthread[0].pos->tbPosition;  // Rootpos in TB => report at least one tbhit
 
     // increment generation counter for tt aging
     tp.nextSearch();

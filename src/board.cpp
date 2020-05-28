@@ -266,6 +266,40 @@ void initCastleRights(int rookfiles[], int kingfile)
     }
 }
 
+void chessposition::copy(chessposition *src)
+{
+    memcpy(piece00, src->piece00, sizeof(piece00));
+    memcpy(occupied00, src->occupied00, sizeof(occupied00));
+    memcpy(kingpos, src->kingpos, sizeof(kingpos));
+    memcpy(mailbox, src->mailbox, sizeof(mailbox));
+    memcpy(movestack, src->movestack, sizeof(movestack));
+    state = src->state;
+    ept = src->ept;
+    hash = src->hash;
+    pawnhash = src->pawnhash;
+    materialhash = src->materialhash;
+    halfmovescounter = src->halfmovescounter;
+    fullmovescounter = src->fullmovescounter;
+    isCheckbb = src->isCheckbb;
+    lastnullmove = src->lastnullmove;
+    movecode = src->movecode;
+    kingPinned = src->kingPinned;
+    mstop = src->mstop;
+    ply = src->ply;
+    rootheight = src->rootheight;
+    rootmovelist = src->rootmovelist;
+    psqval = src->psqval;
+    useTb = src->useTb;
+    useRootmoveScore = src->useRootmoveScore;
+    tbPosition = src->tbPosition;
+
+    memset(LegalMoves, 0, sizeof(LegalMoves));
+    memset(killer, 0, sizeof(killer));
+    bestFailingLow = 0;
+    memset(pvtable, 0, sizeof(pvtable));
+    memset(multipvtable, 0, sizeof(multipvtable));
+    memset(lastpv, 0, sizeof(lastpv));
+}
 
 int chessposition::getFromFen(const char* sFen)
 {
@@ -2411,6 +2445,7 @@ searchthread::searchthread()
 
 searchthread::~searchthread()
 {
+    delete pos;
     delete pwnhsh;
 }
 
@@ -2452,7 +2487,7 @@ void engine::allocPawnhash()
     for (int i = 0; i < Threads; i++)
     {
         delete sthread[i].pwnhsh;
-        sthread[i].pos.pwnhsh = sthread[i].pwnhsh = new Pawnhash(sizeOfPh);
+        sthread[i].pos->pwnhsh = sthread[i].pwnhsh = new Pawnhash(sizeOfPh);
     }
 }
 
@@ -2466,6 +2501,7 @@ void engine::allocThreads()
         sthread[i].index = i;
         sthread[i].searchthreads = sthread;
         sthread[i].numofthreads = Threads;
+        sthread[i].pos = new chessposition_magic();
     }
     allocPawnhash();
     prepareThreads();
@@ -2478,14 +2514,16 @@ void engine::prepareThreads()
     for (int i = 0; i < Threads; i++)
     {
         // copy new position to the threads copy but keep old history data
-        memcpy((void*)&sthread[i].pos, &rootposition, offsetof(chessposition, history));
-        sthread[i].pos.threadindex = i;
+        //memcpy((void*)sthread[i].pos, (void*)&rootposition, offsetof(chessposition_magic, history));
+        sthread[i].pos->copy(&rootposition);
+        //memcpy((void*)sthread[i].pos, (void*)&rootposition, offsetof(chessposition_magic, history));
+        sthread[i].pos->threadindex = i;
         // early reset of variables that are important for bestmove selection
-        sthread[i].pos.bestmovescore[0] = NOSCORE;
-        sthread[i].pos.bestmove.code = 0;
-        sthread[i].pos.nodes = 0;
-        sthread[i].pos.nullmoveply = 0;
-        sthread[i].pos.nullmoveside = 0;
+        sthread[i].pos->bestmovescore[0] = NOSCORE;
+        sthread[i].pos->bestmove.code = 0;
+        sthread[i].pos->nodes = 0;
+        sthread[i].pos->nullmoveply = 0;
+        sthread[i].pos->nullmoveside = 0;
     }
 }
 
@@ -2493,9 +2531,9 @@ void engine::resetStats()
 {
     for (int i = 0; i < Threads; i++)
     {
-        memset(sthread[i].pos.history, 0, sizeof(chessposition::history));
-        memset(sthread[i].pos.counterhistory, 0, sizeof(chessposition::counterhistory));
-        memset(sthread[i].pos.countermove, 0, sizeof(chessposition::countermove));
+        memset(sthread[i].pos->history, 0, sizeof(chessposition::history));
+        memset(sthread[i].pos->counterhistory, 0, sizeof(chessposition::counterhistory));
+        memset(sthread[i].pos->countermove, 0, sizeof(chessposition::countermove));
     }
 }
 
@@ -2504,7 +2542,7 @@ U64 engine::getTotalNodes()
 {
     U64 nodes = 0;
     for (int i = 0; i < Threads; i++)
-        nodes += sthread[i].pos.nodes;
+        nodes += sthread[i].pos->nodes;
 
     return nodes;
 }
@@ -2610,7 +2648,7 @@ void engine::communicate(string inputstring)
                 // invalidate hash and history
                 tp.clean();
                 resetStats();
-                sthread[0].pos.lastbestmovescore = NOSCORE;
+                sthread[0].pos->lastbestmovescore = NOSCORE;
                 break;
             case SETOPTION:
                 if (en.stopLevel != ENGINETERMINATEDSEARCH)
@@ -2762,7 +2800,7 @@ void engine::communicate(string inputstring)
                     else
                         ci++;
                 }
-                isWhite = (sthread[0].pos.w2m());
+                isWhite = (sthread[0].pos->w2m());
                 stopLevel = ENGINERUN;
                 searchStart();
                 if (inputstring != "")
@@ -2781,7 +2819,7 @@ void engine::communicate(string inputstring)
                 break;
             case EVAL:
                 en.evaldetails = (ci < cs && commandargs[ci] == "detail");
-                sthread[0].pos.getEval<TRACE>();
+                sthread[0].pos->getEval<TRACE>();
                 break;
             case PERFT:
                 if (ci < cs) {

@@ -93,7 +93,7 @@ string GetSystemInfo()
 
 void generateEpd(string egn)
 {
-    chessposition *pos = &en.sthread[0].pos;
+    chessposition *pos = en.sthread[0].pos;
     int pcs[16];
 
     int n = 1000;
@@ -163,7 +163,7 @@ void generateEpd(string egn)
 long long engine::perft(int depth, bool dotests)
 {
     long long retval = 0;
-    chessposition *rootpos = &en.sthread[0].pos;
+    chessposition *rootpos = en.sthread[0].pos;
 
     if (dotests)
     {
@@ -313,7 +313,7 @@ static void perftest(bool dotests, int maxdepth)
 
     while (ptr[i].fen != "")
     {
-        en.sthread[0].pos.getFromFen(ptr[i].fen.c_str());
+        en.sthread[0].pos->getFromFen(ptr[i].fen.c_str());
         int j = 0;
         while (ptr[i].nodes[j] > 0 && j <= maxdepth)
         {
@@ -825,10 +825,10 @@ static void testengine(string epdfilename, int startnum, string engineprgs, stri
             if (doEval)
             {
                 // Skip positions with check
-                en.sthread[0].pos.getFromFen(fenstr.c_str());
-                if (en.sthread[0].pos.isCheckbb)
+                en.sthread[0].pos->getFromFen(fenstr.c_str());
+                if (en.sthread[0].pos->isCheckbb)
                     continue;
-                fenstr = en.sthread[0].pos.toFen();
+                fenstr = en.sthread[0].pos->toFen();
             }
 
             // Get data from compare file

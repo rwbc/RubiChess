@@ -40,7 +40,7 @@
 #define EVALOPTIONS
 #endif
 
-#if 0
+#if 1
 #define FINDMEMORYLEAKS
 #endif
 
@@ -1042,6 +1042,8 @@ enum PvAbortType {
     PVA_FUTILITYPRUNED, PVA_SEEPRUNED, PVA_BADHISTORYPRUNED, PVA_MULTICUT, PVA_BESTMOVE, PVA_NOTBESTMOVE, PVA_OMITTED, PVA_BETACUT, PVA_BELOWALPHA }; 
 #endif
 
+enum BitboardType { BT_MAGIC, BT_PEXT };
+
 class chessposition
 {
 public:
@@ -1125,6 +1127,7 @@ public:
     Materialhash mtrlhsh;
 
     bool w2m();
+    void copy(chessposition *src);
     void BitboardSet(int index, PieceCode p);
     void BitboardClear(int index, PieceCode p);
     void BitboardMove(int from, int to, PieceCode p);
@@ -1173,6 +1176,9 @@ public:
     string getPv(uint32_t *table);
     int getHistory(uint32_t code, int16_t **cmptr);
     inline void CheckForImmediateStop();
+    virtual U64 rookAttacks(U64 occ, int from) = 0;
+    virtual U64 bishopAttacks(U64 occ, int from) = 0;
+
 
 #ifdef SDEBUG
     bool triggerDebug(chessmove* nextmove);
@@ -1181,6 +1187,19 @@ public:
     int testRepetiton();
     void mirror();
 };
+
+
+class chessposition_magic : public chessposition
+{
+    U64 rookAttacks(U64 occ, int from) {
+        return     MAGICROOKATTACKS(occ, from);
+    }
+    U64 bishopAttacks(U64 occ, int from) {
+        return     MAGICBISHOPATTACKS(occ, from);
+    }
+
+};
+
 
 //
 // uci stuff
@@ -1274,7 +1293,7 @@ public:
     string SyzygyPath;
     bool Syzygy50MoveRule = true;
     int SyzygyProbeLimit;
-    chessposition rootposition;
+    chessposition_magic rootposition;
     int Threads;
     searchthread *sthread;
     enum { NO, PONDERING, HITPONDER } pondersearch;
@@ -1342,7 +1361,7 @@ extern engine en;
 class searchthread
 {
 public:
-    chessposition pos;
+    chessposition *pos;
     Pawnhash *pwnhsh;
     thread thr;
     int index;
