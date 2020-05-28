@@ -266,7 +266,7 @@ void initCastleRights(int rookfiles[], int kingfile)
     }
 }
 
-void chessposition::copy(chessposition *src)
+void chessposition::copyAndReset(chessposition *src)
 {
     memcpy(piece00, src->piece00, sizeof(piece00));
     memcpy(occupied00, src->occupied00, sizeof(occupied00));
@@ -299,6 +299,12 @@ void chessposition::copy(chessposition *src)
     memset(pvtable, 0, sizeof(pvtable));
     memset(multipvtable, 0, sizeof(multipvtable));
     memset(lastpv, 0, sizeof(lastpv));
+    bestmovescore[0] = NOSCORE;
+    bestmove.code = 0;
+    nodes = 0;
+    nullmoveply = 0;
+    nullmoveside = 0;
+
 }
 
 int chessposition::getFromFen(const char* sFen)
@@ -2515,15 +2521,10 @@ void engine::prepareThreads()
     {
         // copy new position to the threads copy but keep old history data
         //memcpy((void*)sthread[i].pos, (void*)&rootposition, offsetof(chessposition_magic, history));
-        sthread[i].pos->copy(&rootposition);
+        sthread[i].pos->copyAndReset(&rootposition);
         //memcpy((void*)sthread[i].pos, (void*)&rootposition, offsetof(chessposition_magic, history));
         sthread[i].pos->threadindex = i;
         // early reset of variables that are important for bestmove selection
-        sthread[i].pos->bestmovescore[0] = NOSCORE;
-        sthread[i].pos->bestmove.code = 0;
-        sthread[i].pos->nodes = 0;
-        sthread[i].pos->nullmoveply = 0;
-        sthread[i].pos->nullmoveside = 0;
     }
 }
 

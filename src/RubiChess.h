@@ -1127,7 +1127,7 @@ public:
     Materialhash mtrlhsh;
 
     bool w2m();
-    void copy(chessposition *src);
+    void copyAndReset(chessposition *src);
     void BitboardSet(int index, PieceCode p);
     void BitboardClear(int index, PieceCode p);
     void BitboardMove(int from, int to, PieceCode p);
