@@ -666,6 +666,9 @@ extern transposition tp;
 // board stuff
 //
 
+enum BitboardType { BT_MAGIC, BT_PEXT };
+
+
 #define STARTFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define BOARDSIZE 64
@@ -990,8 +993,8 @@ public:
 
 public:
     void SetPreferredMoves(chessposition *p);  // for quiescence move selector
-    void SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
-    chessmove* next();
+    template <BitboardType Bt> void SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
+    template <BitboardType Bt> chessmove* next();
 };
 
 extern U64 pawn_attacks_to[64][2];
@@ -1019,13 +1022,6 @@ extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 enum MoveType { QUIET = 1, CAPTURE = 2, PROMOTE = 4, TACTICAL = 6, ALL = 7 };
 enum RootsearchType { SinglePVSearch, MultiPVSearch, PonderSearch };
 
-int CreateEvasionMovelist(chessposition *pos, chessmove* mstart);
-template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart);
-template <PieceType Pt> inline int CreateMovelistPiece(chessposition *pos, chessmove* mstart, U64 occ, U64 targets, int me);
-template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmove* mstart, int me);
-inline int CreateMovelistCastle(chessposition *pos, chessmove* mstart, int me);
-template <MoveType Mt> void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr);
-
 enum AttackType { FREE, OCCUPIED, OCCUPIEDANDKING };
 
 struct positioneval {
@@ -1041,8 +1037,6 @@ enum PvAbortType {
     PVA_UNKNOWN = 0, PVA_FROMTT, PVA_DIFFERENTFROMTT, PVA_RAZORPRUNED, PVA_REVFUTILITYPRUNED, PVA_NMPRUNED, PVA_PROBCUTPRUNED, PVA_LMPRUNED,
     PVA_FUTILITYPRUNED, PVA_SEEPRUNED, PVA_BADHISTORYPRUNED, PVA_MULTICUT, PVA_BESTMOVE, PVA_NOTBESTMOVE, PVA_OMITTED, PVA_BETACUT, PVA_BELOWALPHA }; 
 #endif
-
-enum BitboardType { BT_MAGIC, BT_PEXT };
 
 class chessposition
 {
@@ -1137,38 +1131,47 @@ public:
     bool applyMove(string s);
     void print(ostream* os = &cout);
     int phase();
-    U64 movesTo(PieceCode pc, int from);
-    template <PieceType Pt> U64 pieceMovesTo(int from);
-    bool isAttacked(int index, int me);
-    U64 isAttackedByMySlider(int index, U64 occ, int me);  // special simple version to detect giving check by removing blocker
-    U64 attackedByBB(int index, U64 occ);  // returns bitboard of all pieces of both colors attacking index square 
-    template <AttackType At> U64 isAttackedBy(int index, int col);    // returns the bitboard of cols pieces attacking the index square; At controls if pawns are moved to block or capture
-    bool see(uint32_t move, int threshold);
+    template <BitboardType Bt> U64 movesTo(PieceCode pc, int from);
+    template <PieceType Pt, BitboardType Bt> U64 pieceMovesTo(int from);
+    template <BitboardType Bt> bool isAttacked(int index, int me);
+    template <BitboardType Bt> U64 isAttackedByMySlider(int index, U64 occ, int me);  // special simple version to detect giving check by removing blocker
+    template <BitboardType Bt> U64 attackedByBB(int index, U64 occ);  // returns bitboard of all pieces of both colors attacking index square 
+    template <AttackType At, BitboardType Bt> U64 isAttackedBy(int index, int col);    // returns the bitboard of cols pieces attacking the index square; At controls if pawns are moved to block or capture
+    template <BitboardType Bt> bool see(uint32_t move, int threshold);
     int getBestPossibleCapture();
     void getRootMoves();
     void tbFilterRootMoves();
     void prepareStack();
     string movesOnStack();
-    bool playMove(chessmove *cm);
+    template <BitboardType Bt>bool playMove(chessmove *cm);
     void unplayMove(chessmove *cm);
     void playNullMove();
     void unplayNullMove();
-    void updatePins();
-    bool moveGivesCheck(uint32_t c);  // simple and imperfect as it doesn't handle special moves and cases (mainly to avoid pruning of important moves)
-    bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
-    uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
+
+    template <BitboardType Bt> inline int CreateMovelistCastle(chessmove* mstart, int me);
+    template <BitboardType Bt> inline int CreateEvasionMovelist(chessmove* mstart);
+    template <MoveType Mt, BitboardType Bt> int CreateMovelist(chessmove* mstart);
+    template <PieceType Pt, BitboardType Bt> inline int CreateMovelistPiece(chessmove* mstart, U64 occ, U64 targets, int me);
+    template <MoveType Mt> inline int CreateMovelistPawn(chessmove* mstart, int me);
+    template <MoveType Mt> void evaluateMoves(chessmovelist *ml, int16_t **cmptr);
+
+
+    template <BitboardType Bt> void updatePins();
+    template <BitboardType Bt> bool moveGivesCheck(uint32_t c);  // simple and imperfect as it doesn't handle special moves and cases (mainly to avoid pruning of important moves)
+    template <BitboardType Bt> bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
+    template <BitboardType Bt> uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
     int getpsqval(bool showDetails = false);  // only for eval trace and mirror test
     template <EvalType Et, int Me> int getGeneralEval(positioneval *pe);
-    template <EvalType Et, PieceType Pt, int Me> int getPieceEval(positioneval *pe);
-    template <EvalType Et, int Me> int getLateEval(positioneval *pe);
+    template <EvalType Et, PieceType Pt, int Me, BitboardType Bt> int getPieceEval(positioneval *pe);
+    template <EvalType Et, int Me, BitboardType Bt> int getLateEval(positioneval *pe);
     template <EvalType Et, int Me> void getPawnAndKingEval(pawnhashentry *entry);
-    template <EvalType Et> int getEval();
+    template <EvalType Et, BitboardType Bt> int getEval();
     void getScaling(Materialhashentry *mhentry);
     int getComplexity(int eval, pawnhashentry *phentry, Materialhashentry *mhentry);
 
-    template <RootsearchType RT> int rootsearch(int alpha, int beta, int depth);
-    int alphabeta(int alpha, int beta, int depth);
-    int getQuiescence(int alpha, int beta, int depth);
+    template <RootsearchType RT, BitboardType Bt> int rootsearch(int alpha, int beta, int depth);
+    template <BitboardType Bt> int alphabeta(int alpha, int beta, int depth);
+    template <BitboardType Bt> int getQuiescence(int alpha, int beta, int depth);
     void updateHistory(uint32_t code, int16_t **cmptr, int value);
     void getCmptr(int16_t **cmptr);
     void updatePvTable(uint32_t mc, bool recursive);
@@ -1176,9 +1179,15 @@ public:
     string getPv(uint32_t *table);
     int getHistory(uint32_t code, int16_t **cmptr);
     inline void CheckForImmediateStop();
-    virtual inline U64 rookAttacks(U64 occ, int from) = 0;
-    virtual inline U64 bishopAttacks(U64 occ, int from) = 0;
 
+    template<BitboardType Bt> inline U64 rookAttacks(U64 occ, int from) {
+        if (Bt == BT_MAGIC) return MAGICROOKATTACKS(occ, from);
+        if (Bt == BT_PEXT) return 0ULL;
+    }
+    template<BitboardType Bt> inline U64 bishopAttacks(U64 occ, int from) {
+        if (Bt == BT_MAGIC) return MAGICBISHOPATTACKS(occ, from);
+        if (Bt == BT_PEXT) return 0ULL;
+    }
 
 #ifdef SDEBUG
     bool triggerDebug(chessmove* nextmove);
@@ -1188,18 +1197,12 @@ public:
     void mirror();
 };
 
-
+#if 0
 class chessposition_magic : public chessposition
 {
-    inline U64 rookAttacks(U64 occ, int from) {
-        return     MAGICROOKATTACKS(occ, from);
-    }
-    inline U64 bishopAttacks(U64 occ, int from) {
-        return     MAGICBISHOPATTACKS(occ, from);
-    }
 
 };
-
+#endif
 
 //
 // uci stuff
@@ -1293,7 +1296,7 @@ public:
     string SyzygyPath;
     bool Syzygy50MoveRule = true;
     int SyzygyProbeLimit;
-    chessposition_magic rootposition;
+    chessposition rootposition;
     int Threads;
     searchthread *sthread;
     enum { NO, PONDERING, HITPONDER } pondersearch;
@@ -1385,10 +1388,10 @@ void resetEndTime(int constantRootMoves, bool complete = true);
 extern int TBlargest; // 5 if 5-piece tables, 6 if 6-piece tables were found.
 
 void init_tablebases(char *path);
-int probe_wdl(int *success, chessposition *pos);
-int probe_dtz(int *success, chessposition *pos);
-int root_probe_dtz(chessposition *pos);
-int root_probe_wdl(chessposition *pos);
+template <BitboardType Bt> int probe_wdl(int *success, chessposition *pos);
+template <BitboardType Bt> int probe_dtz(int *success, chessposition *pos);
+template <BitboardType Bt> int root_probe_dtz(chessposition *pos);
+template <BitboardType Bt> int root_probe_wdl(chessposition *pos);
 
 
 //

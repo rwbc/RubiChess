@@ -323,7 +323,7 @@ static int probe_dtz_table(int wdl, int *success, chessposition *pos)
 }
 
 
-static int probe_ab(int alpha, int beta, int *success, chessposition *pos)
+template <BitboardType Bt> static int probe_ab(int alpha, int beta, int *success, chessposition *pos)
 {
     int v;
 
@@ -331,16 +331,16 @@ static int probe_ab(int alpha, int beta, int *success, chessposition *pos)
     // It is OK to generate more, as long as they are filtered out below.
     chessmovelist movelist;
     pos->prepareStack();
-    movelist.length = CreateMovelist<ALL>(pos, &movelist.move[0]);
+    movelist.length = pos->CreateMovelist<ALL, Bt>(&movelist.move[0]);
     for (int i = 0; i < movelist.length; i++)
     {
         chessmove *m = &movelist.move[i];
         if (ISCAPTURE(m->code) || ISPROMOTION(m->code) || pos->isCheckbb)
         {
-            if (pos->playMove(m))
+            if (pos->playMove<Bt>(m))
             {
                 //printf("probe_ab (ply=%d) testing capture/promotion/evasion move %s...\n", pos.ply, pos.actualpath.toString().c_str());
-                v = -probe_ab(-beta, -alpha, success, pos);
+                v = -probe_ab<Bt>(-beta, -alpha, success, pos);
                 //printf("probe_ab (ply=%d) tested  capture/promotion/evasion move %s... v=%d\n", pos.ply, pos.actualpath.toString().c_str(), v);
                 pos->unplayMove(m);
                 if (*success == 0) return 0;
@@ -375,7 +375,7 @@ static int probe_ab(int alpha, int beta, int *success, chessposition *pos)
 //  0 : draw
 //  1 : win, but draw under 50-move rule
 //  2 : win
-int probe_wdl(int *success, chessposition *pos)
+template <BitboardType Bt> int probe_wdl(int *success, chessposition *pos)
 {
     *success = 1;
     int best_cap = -3, best_ep = -3;
@@ -384,7 +384,7 @@ int probe_wdl(int *success, chessposition *pos)
     // Generate (at least) all legal captures including (under)promotions.
     chessmovelist movelist;
     pos->prepareStack();
-    movelist.length = CreateMovelist<ALL>(pos, &movelist.move[0]);
+    movelist.length = pos->CreateMovelist<ALL, Bt>(&movelist.move[0]);
 
     // We do capture resolution, letting best_cap keep track of the best
     // capture without ep rights and letting best_ep keep track of still
@@ -394,10 +394,10 @@ int probe_wdl(int *success, chessposition *pos)
         chessmove *m = &movelist.move[i];
         if (ISCAPTURE(m->code))
         {
-            if (pos->playMove(m))
+            if (pos->playMove<Bt>(m))
             {
                 //printf("probe_wdl (ply=%d) testing capture/promotion/evasion move %s...\n", pos.ply, pos.actualpath.toString().c_str());
-                int v = -probe_ab(-2, -best_cap, success, pos);
+                int v = -probe_ab<Bt>(-2, -best_cap, success, pos);
                 //printf("probe_wdl (ply=%d) tested  capture/promotion/evasion move %s... v=%d\n", pos.ply, pos.actualpath.toString().c_str(), v);
                 pos->unplayMove(m);
                 if (*success == 0) return 0;
@@ -453,7 +453,7 @@ int probe_wdl(int *success, chessposition *pos)
             if (ISEPCAPTURE(m->code))
                 continue;
 
-            if (pos->playMove(m))
+            if (pos->playMove<Bt>(m))
             {
                 pos->unplayMove(m);
                 break;
@@ -502,11 +502,11 @@ static int wdl_to_dtz[] = {
 // In short, if a move is available resulting in dtz + 50-move-counter <= 99,
 // then do not accept moves leading to dtz + 50-move-counter == 100.
 //
-int probe_dtz(int *success, chessposition *pos)
+template <BitboardType Bt> int probe_dtz(int *success, chessposition *pos)
 {
     chessmovelist movelist;
 
-    int wdl = probe_wdl(success, pos);
+    int wdl = probe_wdl<Bt>(success, pos);
     if (*success == 0)
         return 0;
 
@@ -523,7 +523,7 @@ int probe_dtz(int *success, chessposition *pos)
         // Generate at least all legal non-capturing pawn moves
         // including non-capturing promotions.
         pos->prepareStack();
-        movelist.length = CreateMovelist<ALL>(pos, &movelist.move[0]);
+        movelist.length = pos->CreateMovelist<ALL, Bt>(&movelist.move[0]);
 
         for (int i = 0; i < movelist.length; i++)
         {
@@ -531,10 +531,10 @@ int probe_dtz(int *success, chessposition *pos)
             if (ISCAPTURE(m->code) || (GETPIECE(m->code) >> 1) != PAWN)
                 continue;
 
-            if (pos->playMove(m))
+            if (pos->playMove<Bt>(m))
             {
                 //printf("probe_dtz (ply=%d)testing non-capture pawn move %s...\n", pos->ply, m->toString().c_str());
-                int v = -probe_wdl(success, pos);
+                int v = -probe_wdl<Bt>(success, pos);
                 //printf("probe_dtz (ply=%d)tested  non-capture pawn move %s... v=%d\n", pos->ply, m->toString().c_str(), v);
                 pos->unplayMove(m);
                 if (*success == 0)
@@ -567,7 +567,7 @@ int probe_dtz(int *success, chessposition *pos)
         // In case of mate, this will cause -1 to be returned.
         best = wdl_to_dtz[wdl + 2];
         pos->prepareStack();
-        movelist.length = CreateMovelist<ALL>(pos, &movelist.move[0]);
+        movelist.length = pos->CreateMovelist<ALL, Bt>(&movelist.move[0]);
     }
     for (int i = 0; i < movelist.length; i++)
     {
@@ -578,10 +578,10 @@ int probe_dtz(int *success, chessposition *pos)
         if (ISCAPTURE(m->code) || (GETPIECE(m->code) >> 1) == PAWN)
             continue;
 
-        if (pos->playMove(m))
+        if (pos->playMove<Bt>(m))
         {
             //printf("probe_dtz (ply=%d) testing non-pawn non-capture %s... \n", pos.ply, pos.actualpath.toString().c_str());
-            int v = -probe_dtz(success, pos);
+            int v = -probe_dtz<Bt>(success, pos);
             //printf("probe_dtz (ply=%d) tested  non-pawn non-capture %s... v=%d\n", pos.ply, pos.actualpath.toString().c_str(), v);
             pos->unplayMove(m);
             if (*success == 0)
@@ -616,11 +616,11 @@ static int wdl_to_Value[5] = {
 //
 // A return value of 0 indicates that not all probes were successful and that
 // no moves were filtered out.
-int root_probe_dtz(chessposition *pos)
+template <BitboardType Bt> int root_probe_dtz(chessposition *pos)
 {
     int success;
 
-    int dtz = probe_dtz(&success, pos);
+    int dtz = probe_dtz<Bt>(&success, pos);
     if (!success)
         return 0;
 
@@ -628,17 +628,17 @@ int root_probe_dtz(chessposition *pos)
     for (int i = 0; i < pos->rootmovelist.length; i++)
     {
         chessmove *m = &pos->rootmovelist.move[i];
-        pos->playMove(m);
+        pos->playMove<Bt>(m);
         //printf("info string root_probe_dtz (ply=%d) Testing move %s...\n", pos->ply, m->toString().c_str());
         int v = 0;
         if (pos->isCheckbb && dtz > 0) {
             chessmovelist nextmovelist;
             pos->prepareStack();
-            nextmovelist.length = CreateMovelist<ALL>(pos, &nextmovelist.move[0]);
+            nextmovelist.length = pos->CreateMovelist<ALL, Bt>(&nextmovelist.move[0]);
             bool foundevasion = false;
             for (int j = 0; j < nextmovelist.length; j++)
             {
-                if (pos->playMove(&nextmovelist.move[j]))
+                if (pos->playMove<Bt>(&nextmovelist.move[j]))
                 {
                     foundevasion = true;
                     pos->unplayMove(&nextmovelist.move[j]);
@@ -650,12 +650,12 @@ int root_probe_dtz(chessposition *pos)
         }
         if (!v) {
             if (pos->halfmovescounter != 0) {
-                v = -probe_dtz(&success, pos);
+                v = -probe_dtz<Bt>(&success, pos);
                 if (v > 0) v++;
                 else if (v < 0) v--;
             }
             else {
-                v = -probe_wdl(&success, pos);
+                v = -probe_wdl<Bt>(&success, pos);
                 v = wdl_to_dtz[v + 2];
             }
         }
@@ -762,7 +762,7 @@ int root_probe_dtz(chessposition *pos)
 //
 // A return value of 0 indicates that not all probes were successful and that
 // no moves were filtered out.
-int root_probe_wdl(chessposition *pos)
+template <BitboardType Bt> int root_probe_wdl(chessposition *pos)
 {
     int success;
     int best = -2;
@@ -771,9 +771,9 @@ int root_probe_wdl(chessposition *pos)
     for (int i = 0; i < pos->rootmovelist.length; i++)
     {
         chessmove *m = &pos->rootmovelist.move[i];
-        pos->playMove(m);
+        pos->playMove<Bt>(m);
         //printf("info string root_probe_wdl (ply=%d) Testing move %s...\n", pos->ply, m->toString().c_str());
-        int v = -probe_wdl(&success, pos);
+        int v = -probe_wdl<Bt>(&success, pos);
         //printf("info string root_probe_wdl (ply=%d) Tested  move %s... value=%d\n", pos->ply, m->toString().c_str(), v);
         pos->unplayMove(m);
         if (!success)
@@ -807,3 +807,9 @@ int root_probe_wdl(chessposition *pos)
 
     return (best <= 0); // When winning we need to search for the best move
 }
+
+// Explicit template instantiation
+// This avoids putting these definitions in header file
+template int root_probe_wdl<BT_MAGIC>(chessposition *);
+template int root_probe_dtz<BT_MAGIC>(chessposition *);
+

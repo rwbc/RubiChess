@@ -96,7 +96,7 @@ inline void chessposition::updateHistory(uint32_t code, int16_t **cmptr, int val
 }
 
 
-int chessposition::getQuiescence(int alpha, int beta, int depth)
+template <BitboardType Bt> int chessposition::getQuiescence(int alpha, int beta, int depth)
 {
     int score;
     int bestscore = SHRT_MIN;
@@ -152,7 +152,7 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
             if (movestack[mstop - 1].movecode == 0)
                 staticeval = -staticevalstack[mstop - 1] + CEVAL(eps.eTempo, 2);
             else
-                staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+                staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE, Bt>();
         }
 #endif
 
@@ -193,7 +193,7 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
     int eval_type = HASHALPHA;
     chessmove *m;
 
-    while ((m = ms.next()))
+    while ((m = ms.next<Bt>()))
     {
         if (!myIsCheck && staticeval + materialvalue[GETCAPTURE(m->code) >> 1] + deltapruningmargin <= alpha)
         {
@@ -202,12 +202,12 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
             continue;
         }
 
-        if (!playMove(m))
+        if (!playMove<Bt>(m))
             continue;
 
         STATISTICSINC(qs_moves);
         ms.legalmovenum++;
-        score = -getQuiescence(-beta, -alpha, depth - 1);
+        score = -getQuiescence<Bt>(-beta, -alpha, depth - 1);
         unplayMove(m);
         if (score > bestscore)
         {
@@ -246,7 +246,7 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
 
 
 
-int chessposition::alphabeta(int alpha, int beta, int depth)
+template <BitboardType Bt> int chessposition::alphabeta(int alpha, int beta, int depth)
 {
     int score;
     int hashscore = NOSCORE;
@@ -287,7 +287,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         } else {
             // special case: test for checkmate
             chessmovelist evasions;
-            if (CreateEvasionMovelist(this, &evasions.move[0]) > 0)
+            if (CreateEvasionMovelist<Bt>(&evasions.move[0]) > 0)
                 return SCOREDRAW;
             else
                 return SCOREBLACKWINS + ply;
@@ -308,7 +308,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             seldepth = ply + 1;
 
         STATISTICSINC(ab_qs);
-        return getQuiescence(alpha, beta, depth);
+        return getQuiescence<Bt>(alpha, beta, depth);
     }
 
 
@@ -330,7 +330,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         if (!rep)
         {
             // not a single repetition; we can (almost) safely trust the hash value
-            uint32_t fullhashmove = shortMove2FullMove(hashmovecode);
+            uint32_t fullhashmove = shortMove2FullMove<Bt>(hashmovecode);
             if (fullhashmove)
                 updatePvTable(fullhashmove, false);
 
@@ -352,7 +352,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     if (POPCOUNT(occupied00[0] | occupied00[1]) <= useTb && halfmovescounter == 0)
     {
         int success;
-        int v = probe_wdl(&success, this);
+        int v = probe_wdl<Bt>(&success, this);
         if (success) {
             en.tbhits++;
             int bound;
@@ -390,7 +390,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             // just reverse the staticeval before the null move respecting the tempo
             staticeval = -staticevalstack[mstop - 1] + CEVAL(eps.eTempo, 2);
         else
-            staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+            staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE, Bt>();
     }
     staticevalstack[mstop] = staticeval;
 
@@ -406,11 +406,11 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             int qscore;
             if (depth == 1 && ralpha < alpha)
             {
-                qscore = getQuiescence(alpha, beta, depth);
+                qscore = getQuiescence<Bt>(alpha, beta, depth);
                 SDEBUGDO(isDebugPv, pvabortval[ply] = qscore; pvaborttype[ply] = PVA_RAZORPRUNED;);
                 return qscore;
             }
-            qscore = getQuiescence(ralpha, ralpha + 1, depth);
+            qscore = getQuiescence<Bt>(ralpha, ralpha + 1, depth);
             if (qscore <= ralpha)
             {
                 SDEBUGDO(isDebugPv, pvabortval[ply] = qscore; pvaborttype[ply] = PVA_RAZORPRUNED;);
@@ -440,7 +440,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         playNullMove();
         int R = 4 + (depth / 6) + (bestknownscore - beta) / 150 + !PVNode * 2;
 
-        score = -alphabeta(-beta, -beta + 1, depth - R);
+        score = -alphabeta<Bt>(-beta, -beta + 1, depth - R);
         unplayNullMove();
 
         if (score >= beta)
@@ -456,7 +456,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             // Verification search
             nullmoveply = ply + 3 * (depth - R) / 4;
             nullmoveside = ply % 2;
-            int verificationscore = alphabeta(beta - 1, beta, depth - R);
+            int verificationscore = alphabeta<Bt>(beta - 1, beta, depth - R);
             nullmoveside = nullmoveply = 0;
             if (verificationscore >= beta) {
                 STATISTICSINC(prune_nm);
@@ -471,16 +471,16 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     {
         int rbeta = min(SCOREWHITEWINS, beta + 100);
         chessmovelist *movelist = new chessmovelist;
-        movelist->length = CreateMovelist<TACTICAL>(this, &movelist->move[0]);
+        movelist->length = CreateMovelist<TACTICAL, Bt>(&movelist->move[0]);
 
         for (int i = 0; i < movelist->length; i++)
         {
-            if (!see(movelist->move[i].code, rbeta - staticeval))
+            if (!see<Bt>(movelist->move[i].code, rbeta - staticeval))
                 continue;
 
-            if (playMove(&movelist->move[i]))
+            if (playMove<Bt>(&movelist->move[i]))
             {
-                int probcutscore = -alphabeta(-rbeta, -rbeta + 1, depth - 4);
+                int probcutscore = -alphabeta<Bt>(-rbeta, -rbeta + 1, depth - 4);
 
                 unplayMove(&movelist->move[i]);
 
@@ -503,7 +503,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     const int iiddelta = 2;
     if (PVNode && !hashmovecode && depth >= iidmin)
     {
-        alphabeta(alpha, beta, depth - iiddelta);
+        alphabeta<Bt>(alpha, beta, depth - iiddelta);
         hashmovecode = tp.getMoveCode(newhash);
     }
 
@@ -517,13 +517,13 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     killer[ply + 1][0] = killer[ply + 1][1] = 0;
 
     MoveSelector ms = {};
-    ms.SetPreferredMoves(this, hashmovecode, killer[ply][0], killer[ply][1], counter, excludeMove);
+    ms.SetPreferredMoves<Bt>(this, hashmovecode, killer[ply][0], killer[ply][1], counter, excludeMove);
     STATISTICSINC(moves_loop_n);
 
     int legalMoves = 0;
     int quietsPlayed = 0;
     uint32_t quietMoves[MAXMOVELISTLENGTH];
-    while ((m = ms.next()))
+    while ((m = ms.next<Bt>()))
     {
         ms.legalmovenum++;
 #ifdef SDEBUG
@@ -547,7 +547,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         }
 
         // Check for futility pruning condition for this move and skip move if at least one legal move is already found
-        bool futilityPrune = futility && !ISTACTICAL(m->code) && !isCheckbb && alpha <= 900 && !moveGivesCheck(m->code);
+        bool futilityPrune = futility && !ISTACTICAL(m->code) && !isCheckbb && alpha <= 900 && !moveGivesCheck<Bt>(m->code);
         if (futilityPrune)
         {
             if (legalMoves)
@@ -564,7 +564,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         }
 
         // Prune moves with bad SEE
-        if (!isCheckbb && depth < 9 && bestscore > NOSCORE && ms.state >= QUIETSTATE && !see(m->code, -20 * depth * (ISTACTICAL(m->code) ? depth : 4)))
+        if (!isCheckbb && depth < 9 && bestscore > NOSCORE && ms.state >= QUIETSTATE && !see<Bt>(m->code, -20 * depth * (ISTACTICAL(m->code) ? depth : 4)))
         {
             STATISTICSINC(moves_pruned_badsee);
             SDEBUGDO(isDebugMove, pvaborttype[ply] = PVA_SEEPRUNED;);
@@ -583,7 +583,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         {
             excludemovestack[mstop - 1] = hashmovecode;
             int sBeta = max(hashscore - 2 * depth, SCOREBLACKWINS);
-            int redScore = alphabeta(sBeta - 1, sBeta, depth / 2);
+            int redScore = alphabeta<Bt>(sBeta - 1, sBeta, depth / 2);
             excludemovestack[mstop - 1] = 0;
 
             if (redScore < sBeta)
@@ -647,7 +647,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             continue;
         }
 
-        if (!playMove(m))
+        if (!playMove<Bt>(m))
             continue;
 
         legalMoves++;
@@ -668,22 +668,22 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         if (reduction)
         {
             // LMR search; test against alpha
-            score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
             if (score > alpha)
             {
                 // research without reduction
                 effectiveDepth += reduction;
-                score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+                score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
             }
         }
         else if (!PVNode || legalMoves > 1)
         {
             // Np PV node or not the first move; test against alpha
-            score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
         }
         // (re)search with full window at PV nodes if necessary
         if (PVNode && (legalMoves == 1 || score > alpha))
-            score = -alphabeta(-beta, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-beta, -alpha, effectiveDepth - 1);
 
         unplayMove(m);
 
@@ -771,8 +771,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
 
 
-template <RootsearchType RT>
-int chessposition::rootsearch(int alpha, int beta, int depth)
+template <RootsearchType RT, BitboardType Bt> int chessposition::rootsearch(int alpha, int beta, int depth)
 {
     int score;
     uint16_t hashmovecode = 0;
@@ -815,7 +814,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         && tp.probeHash(hash, &score, &staticeval, &hashmovecode, depth, alpha, beta, 0))
     {
         // Hash is fixed regarding scores that don't see actual 3folds so we can trust the entry
-        uint32_t fullhashmove = shortMove2FullMove(hashmovecode);
+        uint32_t fullhashmove = shortMove2FullMove<Bt>(hashmovecode);
         if (fullhashmove)
         {
             if (bestmove.code != fullhashmove) {
@@ -854,7 +853,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
 
     // get static evaluation of the position
     if (staticeval == NOSCORE)
-        staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+        staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE, Bt>();
     staticevalstack[mstop] = staticeval;
 
     int quietsPlayed = 0;
@@ -875,7 +874,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         SDEBUGDO(isDebugMove, pvmovenum[0] = i + 1; debugMovePlayed = true;)
         SDEBUGDO(pvmovenum[0] <= 0, pvmovenum[0] = -(i + 1););
 #endif
-        playMove(m);
+        playMove<Bt>(m);
 
 #ifndef SDEBUG
         if (en.moveoutput && !threadindex && (!doPonder || depth < MAXDEPTH - 1))
@@ -900,22 +899,22 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         if (reduction)
         {
             // LMR search; test against alpha
-            score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
             if (score > alpha)
             {
                 // research without reduction
                 effectiveDepth += reduction;
-                score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+                score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
             }
         }
         else if (i > 0)
         {
             // Not the first move; test against alpha
-            score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-alpha - 1, -alpha, effectiveDepth - 1);
         }
         // (re)search with full window if necessary
         if (i == 0 || score > alpha)
-            score = -alphabeta(-beta, -alpha, effectiveDepth - 1);
+            score = -alphabeta<Bt>(-beta, -alpha, effectiveDepth - 1);
 
         SDEBUGDO(isDebugMove, pvabortval[0] = score;)
 
@@ -1080,6 +1079,8 @@ static void search_gen1(searchthread *thr)
     int inWindow;
     bool reportedThisDepth;
 
+    const BitboardType Bt = BT_MAGIC;
+
 #ifdef TDEBUG
     en.bStopCount = false;
 #endif
@@ -1132,7 +1133,7 @@ static void search_gen1(searchthread *thr)
         }
         else
         {
-            score = pos->rootsearch<RT>(alpha, beta, thr->depth);
+            score = pos->rootsearch<RT, Bt>(alpha, beta, thr->depth);
 #ifdef TDEBUG
             if (en.stopLevel == ENGINESTOPIMMEDIATELY && isMainThread)
             {
@@ -1228,7 +1229,7 @@ static void search_gen1(searchthread *thr)
                     uint16_t mc = 0;
                     int dummystaticeval;
                     tp.probeHash(pos->hash, &score, &dummystaticeval, &mc, MAXDEPTH, alpha, beta, 0);
-                    pos->bestmove.code = pos->shortMove2FullMove(mc);
+                    pos->bestmove.code = pos->shortMove2FullMove<Bt>(mc);
                     if (doPonder) pos->pondermove.code = 0;
                 }
                     
@@ -1363,9 +1364,9 @@ static void search_gen1(searchthread *thr)
             if (!pos->pondermove.code)
             {
                 // Get the ponder move from TT
-                pos->playMove(&pos->bestmove);
+                pos->playMove<Bt>(&pos->bestmove);
                 uint16_t pondershort = tp.getMoveCode(pos->hash);
-                pos->pondermove.code = pos->shortMove2FullMove(pondershort);
+                pos->pondermove.code = pos->shortMove2FullMove<Bt>(pondershort);
                 pos->unplayMove(&pos->bestmove);
             }
             if (pos->pondermove.code)

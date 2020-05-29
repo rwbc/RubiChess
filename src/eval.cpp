@@ -513,8 +513,7 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
 }
 
 
-template <EvalType Et, PieceType Pt, int Me>
-int chessposition::getPieceEval(positioneval *pe)
+template <EvalType Et, PieceType Pt, int Me, BitboardType Bt> int chessposition::getPieceEval(positioneval *pe)
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
@@ -532,7 +531,7 @@ int chessposition::getPieceEval(positioneval *pe)
         {
             U64 occupied = occupied00[0] | occupied00[1];
             U64 xrayrookoccupied = occupied ^ (piece00[WROOK + Me] | piece00[WQUEEN + Me]);
-            attack = rookAttacks(xrayrookoccupied, index);
+            attack = rookAttacks<Bt>(xrayrookoccupied, index);
 
             // extrabonus for rook on (semi-)open file  
             if (Pt == ROOK && (pe->phentry->semiopen[Me] & BITSET(FILE(index)))) {
@@ -545,7 +544,7 @@ int chessposition::getPieceEval(positioneval *pe)
         {
             U64 occupied = occupied00[0] | occupied00[1];
             U64 xraybishopoccupied = occupied ^ (piece00[WBISHOP + Me] | piece00[WQUEEN + Me]);
-            attack |= bishopAttacks(xraybishopoccupied, index);
+            attack |= bishopAttacks<Bt>(xraybishopoccupied, index);
 
             if (Pt == BISHOP)
             {
@@ -553,7 +552,7 @@ int chessposition::getPieceEval(positioneval *pe)
                 result += EVAL(eps.ePawnblocksbishoppenalty, S2MSIGN(Me) * POPCOUNT(blockingpawns));
                 if (bTrace) te.minors[Me] += EVAL(eps.ePawnblocksbishoppenalty, S2MSIGN(Me) * POPCOUNT(blockingpawns));
 
-                if (MORETHANONE(bishopAttacks(piece00[WPAWN] | piece00[BPAWN], index) & CENTER))
+                if (MORETHANONE(bishopAttacks<Bt>(piece00[WPAWN] | piece00[BPAWN], index) & CENTER))
                 {
                     result += EVAL(eps.eBishopcentercontrolbonus, S2MSIGN(Me));
                     if (bTrace) te.minors[Me] += EVAL(eps.eBishopcentercontrolbonus, S2MSIGN(Me));
@@ -613,8 +612,7 @@ int chessposition::getPieceEval(positioneval *pe)
 }
 
 
-template <EvalType Et, int Me>
-int chessposition::getLateEval(positioneval *pe)
+template <EvalType Et, int Me, BitboardType Bt> int chessposition::getLateEval(positioneval *pe)
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
@@ -651,16 +649,16 @@ int chessposition::getLateEval(positioneval *pe)
 
     // Safe checks and attacks to king area
     kingdanger += SQEVAL(eps.eKingattackweight[KNIGHT], pe->kingattackpiececount[You][KNIGHT] * pe->kingattackers[You], You);
-    if (pieceMovesTo<KNIGHT>(kingpos[Me]) & attackedBy[You][KNIGHT] & yoursafetargets)
+    if (pieceMovesTo<KNIGHT, Bt>(kingpos[Me]) & attackedBy[You][KNIGHT] & yoursafetargets)
         kingdanger += SQEVAL(eps.eSafecheckbonus[KNIGHT], 1, You);
     kingdanger += SQEVAL(eps.eKingattackweight[BISHOP], pe->kingattackpiececount[You][BISHOP] * pe->kingattackers[You], You);
-    if (pieceMovesTo<BISHOP>(kingpos[Me]) & attackedBy[You][BISHOP] & yoursafetargets)
+    if (pieceMovesTo<BISHOP, Bt>(kingpos[Me]) & attackedBy[You][BISHOP] & yoursafetargets)
         kingdanger += SQEVAL(eps.eSafecheckbonus[BISHOP], 1, You);
     kingdanger += SQEVAL(eps.eKingattackweight[ROOK], pe->kingattackpiececount[You][ROOK] * pe->kingattackers[You], You);
-    if (pieceMovesTo<ROOK>(kingpos[Me]) & attackedBy[You][ROOK] & yoursafetargets)
+    if (pieceMovesTo<ROOK, Bt>(kingpos[Me]) & attackedBy[You][ROOK] & yoursafetargets)
         kingdanger += SQEVAL(eps.eSafecheckbonus[ROOK], 1, You);
     kingdanger += SQEVAL(eps.eKingattackweight[QUEEN], pe->kingattackpiececount[You][QUEEN] * pe->kingattackers[You], You);
-    if (pieceMovesTo<QUEEN>(kingpos[Me]) & attackedBy[You][QUEEN] & yoursafetargets)
+    if (pieceMovesTo<QUEEN, Bt>(kingpos[Me]) & attackedBy[You][QUEEN] & yoursafetargets)
         kingdanger += SQEVAL(eps.eSafecheckbonus[QUEEN], 1, You);
 
     kingdanger += SQEVAL(eps.eKingdangerbyqueen, !piece00[WQUEEN | You], You);
@@ -739,8 +737,7 @@ int chessposition::getGeneralEval(positioneval *pe)
 }
 
 
-template <EvalType Et>
-int chessposition::getEval()
+template <EvalType Et, BitboardType Bt> int chessposition::getEval()
 {
     const bool bTrace = (Et == TRACE);
     if (bTrace) te = { { 0 }, { 0 },{ 0 },{ 0 },{ 0 },{ 0 },{ 0 },{ 0 },{ 0 },{ 0 }, 0, 0, 0, 0, 0 };
@@ -782,11 +779,11 @@ int chessposition::getEval()
 
     int pawnEval = pe.phentry->value;
     int generalEval = getGeneralEval<Et, 0>(&pe) + getGeneralEval<Et, 1>(&pe);
-    int piecesEval = getPieceEval<Et, KNIGHT, 0>(&pe)   + getPieceEval<Et, KNIGHT, 1>(&pe)
-                    + getPieceEval<Et, BISHOP, 0>(&pe) + getPieceEval<Et, BISHOP, 1>(&pe)
-                    + getPieceEval<Et, ROOK, 0>(&pe)   + getPieceEval<Et, ROOK, 1>(&pe)
-                    + getPieceEval<Et, QUEEN, 0>(&pe)  + getPieceEval<Et, QUEEN, 1>(&pe);
-    int lateEval = getLateEval<Et, 0>(&pe) + getLateEval<Et, 1>(&pe);
+    int piecesEval = getPieceEval<Et, KNIGHT, 0, Bt>(&pe)   + getPieceEval<Et, KNIGHT, 1, Bt>(&pe)
+                    + getPieceEval<Et, BISHOP, 0, Bt>(&pe) + getPieceEval<Et, BISHOP, 1, Bt>(&pe)
+                    + getPieceEval<Et, ROOK, 0, Bt>(&pe)   + getPieceEval<Et, ROOK, 1, Bt>(&pe)
+                    + getPieceEval<Et, QUEEN, 0, Bt>(&pe)  + getPieceEval<Et, QUEEN, 1, Bt>(&pe);
+    int lateEval = getLateEval<Et, 0, Bt>(&pe) + getLateEval<Et, 1, Bt>(&pe);
 
     int totalEval = psqval + pawnEval + generalEval + piecesEval + lateEval;
 
@@ -894,5 +891,5 @@ void chessposition::getScaling(Materialhashentry* mhentry)
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template int chessposition::getEval<NOTRACE>();
-template int chessposition::getEval<TRACE>();
+template int chessposition::getEval<NOTRACE, BT_MAGIC>();
+template int chessposition::getEval<TRACE, BT_MAGIC>();

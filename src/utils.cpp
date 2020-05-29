@@ -207,7 +207,7 @@ string AlgebraicFromShort(string s, chessposition *pos)
     PieceType promotion = BLANKTYPE;
     chessmovelist ml;
     pos->prepareStack();
-    ml.length = CreateMovelist<ALL>(pos, &ml.move[0]);
+    ml.length = pos->CreateMovelist<ALL, BT_MAGIC>(&ml.move[0]);
     PieceType pt = PAWN;
     int to = 0xc0, from = 0xc0;
     int i = (int)s.size() - 1;
@@ -265,7 +265,7 @@ string AlgebraicFromShort(string s, chessposition *pos)
             && ((to & 0x40) || ((to & 0x07) == (GETTO(ml.move[i].code) & 0x07))))
         {
             // test if the move is legal; otherwise we need to search further
-            if (pos->playMove(&ml.move[i]))
+            if (pos->playMove<BT_MAGIC>(&ml.move[i]))
             {
                 pos->unplayMove(&ml.move[i]);
                 retval = ml.move[i].toString();

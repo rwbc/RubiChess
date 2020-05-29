@@ -136,7 +136,7 @@ void generateEpd(string egn)
                 }
             }
         // Check if position is legal
-        bool isLegal = !pos->isAttackedBy<OCCUPIED>(pos->kingpos[pos->state ^ S2MMASK], pos->state)
+        bool isLegal = !pos->isAttackedBy<OCCUPIED, BT_MAGIC>(pos->kingpos[pos->state ^ S2MMASK], pos->state)
             && squareDistance[pos->kingpos[0]][pos->kingpos[1]] > 0;
         if (isLegal)
         {
@@ -147,8 +147,8 @@ void generateEpd(string egn)
             pos->movestack[0].movecode = -1;  // Avoid fast eval after null move
             pos->rootheight = 0;
             pos->lastnullmove = -1;
-            int staticeval = S2MSIGN(pos->state & S2MMASK) * pos->getEval<NOTRACE>();
-            int quietval = pos->getQuiescence(SCOREBLACKWINS, SCOREWHITEWINS, 0);
+            int staticeval = S2MSIGN(pos->state & S2MMASK) * pos->getEval<NOTRACE, BT_MAGIC>();
+            int quietval = pos->getQuiescence<BT_MAGIC>(SCOREBLACKWINS, SCOREWHITEWINS, 0);
             bool isQuiet = (abs(staticeval - quietval) < 100);
             if (isQuiet)
             {
@@ -182,7 +182,7 @@ long long engine::perft(int depth, bool dotests)
             printf("Alarm! Wrong Material Hash! %llu\n", zb.getMaterialHash(rootpos));
             rootpos->print();
         }
-        int val1 = rootpos->getEval<NOTRACE>();
+        int val1 = rootpos->getEval<NOTRACE, BT_MAGIC>();
         int psq1 = rootpos->getpsqval();
         if (rootpos->psqval != psq1)
         {
@@ -190,9 +190,9 @@ long long engine::perft(int depth, bool dotests)
             rootpos->print();
         }
         rootpos->mirror();
-        int val2 = rootpos->getEval<NOTRACE>();
+        int val2 = rootpos->getEval<NOTRACE, BT_MAGIC>();
         rootpos->mirror();
-        int val3 = rootpos->getEval<NOTRACE>();
+        int val3 = rootpos->getEval<NOTRACE, BT_MAGIC>();
         if (!(val1 == val3 && val1 == -val2))
         {
             printf("Mirrortest  :error  (%d / %d / %d)\n", val1, val2, val3);
@@ -209,15 +209,15 @@ long long engine::perft(int depth, bool dotests)
 
     chessmovelist movelist;
     if (rootpos->isCheckbb)
-        movelist.length = CreateEvasionMovelist(rootpos, &movelist.move[0]);
+        movelist.length = rootpos->CreateEvasionMovelist<BT_MAGIC>(&movelist.move[0]);
     else
-        movelist.length = CreateMovelist<ALL>(rootpos, &movelist.move[0]);
+        movelist.length = rootpos->CreateMovelist<ALL, BT_MAGIC>(&movelist.move[0]);
 
     rootpos->prepareStack();
 
     for (int i = 0; i < movelist.length; i++)
     {
-        if (rootpos->playMove(&movelist.move[i]))
+        if (rootpos->playMove<BT_MAGIC>(&movelist.move[i]))
         {
             retval += perft(depth - 1, dotests);
             rootpos->unplayMove(&movelist.move[i]);

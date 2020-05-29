@@ -484,8 +484,8 @@ int chessposition::getFromFen(const char* sFen)
         catch (...) {}
     }
 
-    isCheckbb = isAttackedBy<OCCUPIED>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
-    updatePins();
+    isCheckbb = isAttackedBy<OCCUPIED, BT_MAGIC>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
+    updatePins<BT_MAGIC>();
 
     hash = zb.getHash(this);
     pawnhash = zb.getPawnHash(this);
@@ -517,11 +517,11 @@ bool chessposition::applyMove(string s)
         to = to > from ? to + 1 : to - 2;
 
     chessmove m = chessmove(from, to, promotion, BLANK, BLANK);
-    m.code = shortMove2FullMove((uint16_t)m.code);
+    m.code = shortMove2FullMove<BT_MAGIC>((uint16_t)m.code);
 
     prepareStack();
 
-    if (playMove(&m))
+    if (playMove<BT_MAGIC>(&m))
     {
         if (halfmovescounter == 0)
         {
@@ -534,8 +534,7 @@ bool chessposition::applyMove(string s)
 }
 
 
-template <MoveType Mt>
-void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
+template <MoveType Mt> void chessposition::evaluateMoves(chessmovelist *ml, int16_t **cmptr)
 {
     for (int i = 0; i < ml->length; i++)
     {
@@ -549,7 +548,7 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
         if (Mt == QUIET || (Mt == ALL && !GETCAPTURE(mc)))
         {
             int to = GETCORRECTTO(mc);
-            ml->move[i].value = pos->history[piece & S2MMASK][GETFROM(mc)][to];
+            ml->move[i].value = history[piece & S2MMASK][GETFROM(mc)][to];
             if (cmptr)
             {
                 for (int j = 0; j < CMPLIES && cmptr[j]; j++)
@@ -569,8 +568,8 @@ void chessposition::getRootMoves()
 {
     chessmovelist movelist;
     prepareStack();
-    movelist.length = CreateMovelist<ALL>(this, &movelist.move[0]);
-    evaluateMoves<ALL>(&movelist, this, NULL);
+    movelist.length = CreateMovelist<ALL, BT_MAGIC>(&movelist.move[0]);
+    evaluateMoves<ALL>(&movelist, NULL);
 
     int bestval = SCOREBLACKWINS;
     rootmovelist.length = 0;
@@ -585,7 +584,7 @@ void chessposition::getRootMoves()
     excludemovestack[0] = 0; // FIXME: Not very nice; is it worth to do do singular testing in root search?
     for (int i = 0; i < movelist.length; i++)
     {
-        if (playMove(&movelist.move[i]))
+        if (playMove<BT_MAGIC>(&movelist.move[i]))
         {
             if (tthit)
             {
@@ -601,10 +600,10 @@ void chessposition::getRootMoves()
                     // Test if this move makes a 3fold possible for opponent
                     prepareStack();
                     chessmovelist followupmovelist;
-                    followupmovelist.length = CreateMovelist<ALL>(this, &followupmovelist.move[0]);
+                    followupmovelist.length = CreateMovelist<ALL, BT_MAGIC>(&followupmovelist.move[0]);
                     for (int j = 0; j < followupmovelist.length; j++)
                     {
-                        if (playMove(&followupmovelist.move[j]))
+                        if (playMove<BT_MAGIC>(&followupmovelist.move[j]))
                         {
                             if (testRepetiton() >= 2)
                                 // 3fold for opponent is possible
@@ -638,7 +637,7 @@ void chessposition::tbFilterRootMoves()
     useRootmoveScore = 0;
     if (POPCOUNT(occupied00[0] | occupied00[1]) <= useTb)
     {
-        if ((tbPosition = root_probe_dtz(this))) {
+        if ((tbPosition = root_probe_dtz<BT_MAGIC>(this))) {
             // The current root position is in the tablebases.
             // RootMoves now contains only moves that preserve the draw or win.
 
@@ -648,7 +647,7 @@ void chessposition::tbFilterRootMoves()
         else // If DTZ tables are missing, use WDL tables as a fallback
         {
             // Filter out moves that do not preserve a draw or win
-            tbPosition = root_probe_wdl(this);
+            tbPosition = root_probe_wdl<BT_MAGIC>(this);
             // useRootmoveScore is set within root_probe_wdl
         }
 
@@ -745,7 +744,7 @@ void chessposition::mirror()
     kingpos[0] = kingpos[1] ^ RANKMASK;
     kingpos[1] = kingpostemp ^ RANKMASK;
     materialhash = zb.getMaterialHash(this);
-    updatePins();
+    updatePins<BT_MAGIC>();
 }
 
 
@@ -780,7 +779,7 @@ void chessposition::unplayNullMove()
 }
 
 
-uint32_t chessposition::shortMove2FullMove(uint16_t c)
+template <BitboardType Bt> uint32_t chessposition::shortMove2FullMove(uint16_t c)
 {
     if (!c)
         return 0;
@@ -821,7 +820,7 @@ uint32_t chessposition::shortMove2FullMove(uint16_t c)
     }
 
     uint32_t fc = (pc << 28) | myeptcastle | (capture << 16) | c;
-    if (moveIsPseudoLegal(fc))
+    if (moveIsPseudoLegal<Bt>(fc))
         return fc;
     else
         return 0;
@@ -829,7 +828,7 @@ uint32_t chessposition::shortMove2FullMove(uint16_t c)
 
 
 // FIXME: moveIsPseudoLegal gets more and more complicated with making it "thread safe"; maybe using 32bit for move in tp would be better?
-bool chessposition::moveIsPseudoLegal(uint32_t c)
+template <BitboardType Bt> bool chessposition::moveIsPseudoLegal(uint32_t c)
 {
     if (!c)
         return false;
@@ -853,7 +852,7 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
         int s2m = state & S2MMASK;
 
         // king in check => castle is illegal
-        if (isAttacked(from, s2m))
+        if (isAttacked<Bt>(from, s2m))
             return false;
 
         // test if move is on first rank
@@ -881,7 +880,7 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
         while (!attacked && kingwalkbb)
         {
             int walkto = pullLsb(&kingwalkbb);
-            attacked = isAttacked(walkto, s2m);
+            attacked = isAttacked<Bt>(walkto, s2m);
         }
         BitboardSet(to, (PieceType)(WROOK | s2m));
         return !attacked;
@@ -898,7 +897,7 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
     myassert(capture >= BLANK && capture <= BQUEEN, this, 1, capture);
 
     // correct target for type of piece?
-    if (!(movesTo(pc, from) & BITSET(to)))
+    if (!(movesTo<Bt>(pc, from) & BITSET(to)))
         return false;
 
     // correct s2m?
@@ -938,13 +937,11 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
         }
     }
 
-
-
     return true;
 }
 
 
-void chessposition::updatePins()
+template <BitboardType Bt>void chessposition::updatePins()
 {
     kingPinned = 0ULL;
     for (int me = WHITE; me <= BLACK; me++)
@@ -952,8 +949,8 @@ void chessposition::updatePins()
         int you = me ^ S2MMASK;
         int k = kingpos[me];
         U64 occ = occupied00[you];
-        U64 attackers = rookAttacks(occ, k) & (piece00[WROOK | you] | piece00[WQUEEN | you]);
-        attackers |= bishopAttacks(occ, k) & (piece00[WBISHOP | you] | piece00[WQUEEN | you]);
+        U64 attackers = rookAttacks<Bt>(occ, k) & (piece00[WROOK | you] | piece00[WQUEEN | you]);
+        attackers |= bishopAttacks<Bt>(occ, k) & (piece00[WBISHOP | you] | piece00[WQUEEN | you]);
         
         while (attackers)
         {
@@ -966,7 +963,7 @@ void chessposition::updatePins()
 }
 
 
-bool chessposition::moveGivesCheck(uint32_t c)
+template <BitboardType Bt> bool chessposition::moveGivesCheck(uint32_t c)
 {
     int pc = GETPIECE(c);
 
@@ -979,11 +976,11 @@ bool chessposition::moveGivesCheck(uint32_t c)
     int yourKing = kingpos[you];
 
     // test if moving piece gives check
-    if (movesTo(pc, GETTO(c)) & BITSET(yourKing))
+    if (movesTo<Bt>(pc, GETTO(c)) & BITSET(yourKing))
         return true;
 
     // test for discovered check
-    if (isAttackedByMySlider(yourKing, (occupied00[0] | occupied00[1]) ^ BITSET(GETTO(c)) ^ BITSET(GETFROM(c)), me))
+    if (isAttackedByMySlider<Bt>(yourKing, (occupied00[0] | occupied00[1]) ^ BITSET(GETTO(c)) ^ BITSET(GETFROM(c)), me))
         return true;
 
     return false;
@@ -1012,7 +1009,7 @@ void chessposition::print(ostream* os)
         *os << "\n";
     }
     chessmovelist pseudolegalmoves;
-    pseudolegalmoves.length = CreateMovelist<ALL>(this, &pseudolegalmoves.move[0]);
+    pseudolegalmoves.length = CreateMovelist<ALL, BT_MAGIC>(&pseudolegalmoves.move[0]);
     *os << "\nFEN: " + toFen() + "\n";
     *os << "State: " << std::hex << state << "\n";
     *os << "EPT: " + to_string(ept) + "\n";
@@ -1021,7 +1018,7 @@ void chessposition::print(ostream* os)
     *os << "Hash: 0x" << hex << hash << " (should be 0x" << hex << zb.getHash(this) << ")\n";
     *os << "Pawn Hash: 0x" << hex << pawnhash << " (should be 0x" << hex << zb.getPawnHash(this) << ")\n";
     *os << "Material Hash: 0x" << hex << materialhash << " (should be 0x" << hex << zb.getMaterialHash(this) << ")\n";
-    *os << "Value: " + to_string(getEval<NOTRACE>()) + "\n";
+    *os << "Value: " + to_string(getEval<NOTRACE, BT_MAGIC>()) + "\n";
     *os << "Repetitions: " + to_string(testRepetiton()) + "\n";
     *os << "Phase: " + to_string(phase()) + "\n";
     *os << "Pseudo-legal Moves: " + pseudolegalmoves.toStringWithValue() + "\n";
@@ -1538,7 +1535,7 @@ void chessposition::BitboardPrint(U64 b)
 }
 
 
-bool chessposition::playMove(chessmove *cm)
+template <BitboardType Bt> bool chessposition::playMove(chessmove *cm)
 {
     int s2m = state & S2MMASK;
     int eptnew = 0;
@@ -1644,7 +1641,7 @@ bool chessposition::playMove(chessmove *cm)
             kingpos[s2m] = to;
 
         // Here we can test the move for being legal
-        if (isAttacked(kingpos[s2m], s2m))
+        if (isAttacked<Bt>(kingpos[s2m], s2m))
         {
             // Move is illegal; just do the necessary subset of unplayMove
             hash = movestack[mstop].hash;
@@ -1697,7 +1694,7 @@ bool chessposition::playMove(chessmove *cm)
     PREFETCH(&pwnhsh->table[pawnhash & pwnhsh->sizemask]);
 
     state ^= S2MMASK;
-    isCheckbb = isAttackedBy<OCCUPIED>(kingpos[s2m ^ S2MMASK], s2m);
+    isCheckbb = isAttackedBy<OCCUPIED, Bt>(kingpos[s2m ^ S2MMASK], s2m);
 
     hash ^= zb.s2m;
 
@@ -1718,7 +1715,7 @@ bool chessposition::playMove(chessmove *cm)
     ply++;
     movestack[mstop++].movecode = cm->code;
     myassert(mstop < MAXMOVESEQUENCELENGTH, this, 1, mstop);
-    updatePins();
+    updatePins<Bt>();
 
     return true;
 }
@@ -1812,10 +1809,10 @@ inline void appendPromotionMove(chessposition *pos, chessmove **m, int from, int
 }
 
 
-template <PieceType Pt> int CreateMovelistPiece(chessposition *pos, chessmove* mstart, U64 occ, U64 targets, int me)
+template <PieceType Pt, BitboardType Bt> int chessposition::CreateMovelistPiece(chessmove* mstart, U64 occ, U64 targets, int me)
 {
     const PieceCode pc = (PieceCode)((Pt << 1) | me);
-    U64 frombits = pos->piece00[pc];
+    U64 frombits = piece00[pc];
     U64 tobits = 0ULL;
     chessmove *m = mstart;
 
@@ -1825,15 +1822,15 @@ template <PieceType Pt> int CreateMovelistPiece(chessposition *pos, chessmove* m
         if (Pt == KNIGHT)
             tobits = (knight_attacks[from] & targets);
         if (Pt == BISHOP || Pt == QUEEN)
-            tobits |= (pos->bishopAttacks(occ, from) & targets);
+            tobits |= (bishopAttacks<Bt>(occ, from) & targets);
         if (Pt == ROOK || Pt == QUEEN)
-            tobits |= (pos->rookAttacks(occ, from) & targets);
+            tobits |= (rookAttacks<Bt>(occ, from) & targets);
         if (Pt == KING)
             tobits = (king_attacks[from] & targets);
         while (tobits)
         {
             int to = pullLsb(&tobits);
-            appendMoveToList(&m, from, to, pc, pos->mailbox[to]);
+            appendMoveToList(&m, from, to, pc, mailbox[to]);
         }
     }
 
@@ -1841,32 +1838,32 @@ template <PieceType Pt> int CreateMovelistPiece(chessposition *pos, chessmove* m
 }
 
 
-inline int CreateMovelistCastle(chessposition *pos, chessmove* mstart, int me)
+template <BitboardType Bt> inline int chessposition::CreateMovelistCastle(chessmove* mstart, int me)
 {
-    if (pos->isCheckbb)
+    if (isCheckbb)
         return 0;
 
     chessmove *m = mstart;
-    U64 occupiedbits = (pos->occupied00[0] | pos->occupied00[1]);
+    U64 occupiedbits = (occupied00[0] | occupied00[1]);
 
     for (int cstli = me * 2; cstli < 2 * me + 2; cstli++)
     {
-        if ((pos->state & (WQCMASK << cstli)) == 0)
+        if ((state & (WQCMASK << cstli)) == 0)
             continue;
-        int kingfrom = pos->kingpos[me];
+        int kingfrom = kingpos[me];
         int rookfrom = castlerookfrom[cstli];
         if (castleblockers[cstli] & (occupiedbits ^ BITSET(rookfrom) ^ BITSET(kingfrom)))
             continue;
 
-        pos->BitboardClear(rookfrom, (PieceType)(WROOK | me));
+        BitboardClear(rookfrom, (PieceType)(WROOK | me));
         U64 kingwalkbb = castlekingwalk[cstli];
         bool attacked = false;
         while (!attacked && kingwalkbb)
         {
             int to = pullLsb(&kingwalkbb);
-            attacked = pos->isAttacked(to, me);
+            attacked = isAttacked<Bt>(to, me);
         }
-        pos->BitboardSet(rookfrom, (PieceType)(WROOK | me));
+        BitboardSet(rookfrom, (PieceType)(WROOK | me));
 
         if (attacked)
             continue;
@@ -1880,19 +1877,19 @@ inline int CreateMovelistCastle(chessposition *pos, chessmove* mstart, int me)
 }
 
 
-template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmove* mstart, int me)
+template <MoveType Mt> inline int chessposition::CreateMovelistPawn(chessmove* mstart, int me)
 {
     chessmove *m = mstart;
     int you = 1 - me;
     const PieceCode pc = (PieceCode)(WPAWN | me);
-    const U64 occ = pos->occupied00[0] | pos->occupied00[1];
+    const U64 occ = occupied00[0] | occupied00[1];
     U64 frombits, tobits;
     int from, to;
 
     if (Mt & QUIET)
     {
         U64 push = PAWNPUSH(you, ~occ & ~PROMOTERANKBB);
-        U64 pushers = push & pos->piece00[pc];
+        U64 pushers = push & piece00[pc];
         U64 doublepushers = PAWNPUSH(you, push) & (RANK2(me) & pushers);
         while (pushers)
         {
@@ -1904,7 +1901,7 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
             from = pullLsb(&doublepushers);
             to = PAWNPUSHDOUBLEINDEX(me, from);
             appendMoveToList(&m, from, to, pc, BLANK);
-            if (epthelper[to] & pos->piece00[WPAWN | you])
+            if (epthelper[to] & piece00[WPAWN | you])
                 // EPT possible for opponent; set EPT field manually
                 (m - 1)->code |= (from + to) << 19;
         }
@@ -1912,24 +1909,24 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
 
     if (Mt & CAPTURE)
     {
-        frombits = pos->piece00[pc] & ~RANK7(me);
+        frombits = piece00[pc] & ~RANK7(me);
         while (frombits)
         {
             from = pullLsb(&frombits);
-            tobits = (pawn_attacks_to[from][me] & pos->occupied00[you]);
+            tobits = (pawn_attacks_to[from][me] & occupied00[you]);
             while (tobits)
             {
                 to = pullLsb(&tobits);
-                appendMoveToList(&m, from, to, pc, pos->mailbox[to]);
+                appendMoveToList(&m, from, to, pc, mailbox[to]);
             }
         }
-        if (pos->ept)
+        if (ept)
         {
-            frombits = pos->piece00[pc] & pawn_attacks_to[pos->ept][you];
+            frombits = piece00[pc] & pawn_attacks_to[ept][you];
             while (frombits)
             {
                 from = pullLsb(&frombits);
-                appendMoveToList(&m, from, pos->ept, pc, WPAWN | you);
+                appendMoveToList(&m, from, ept, pc, WPAWN | you);
                 (m - 1)->code |= EPCAPTUREFLAG;
             }
 
@@ -1938,18 +1935,18 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
 
     if (Mt & PROMOTE)
     {
-        frombits = pos->piece00[pc] & RANK7(me);
+        frombits = piece00[pc] & RANK7(me);
         while (frombits)
         {
             from = pullLsb(&frombits);
-            tobits = (pawn_attacks_to[from][me] & pos->occupied00[you]) | (pawn_moves_to[from][me] & ~occ);
+            tobits = (pawn_attacks_to[from][me] & occupied00[you]) | (pawn_moves_to[from][me] & ~occ);
             while (tobits)
             {
                 to = pullLsb(&tobits);
-                appendPromotionMove(pos, &m, from, to, me, QUEEN);
-                appendPromotionMove(pos, &m, from, to, me, ROOK);
-                appendPromotionMove(pos, &m, from, to, me, BISHOP);
-                appendPromotionMove(pos, &m, from, to, me, KNIGHT);
+                appendPromotionMove(this, &m, from, to, me, QUEEN);
+                appendPromotionMove(this, &m, from, to, me, ROOK);
+                appendPromotionMove(this, &m, from, to, me, BISHOP);
+                appendPromotionMove(this, &m, from, to, me, KNIGHT);
             }
         }
     }
@@ -1958,38 +1955,38 @@ template <MoveType Mt> inline int CreateMovelistPawn(chessposition *pos, chessmo
 }
 
 
-int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
+template <BitboardType Bt> inline int chessposition::CreateEvasionMovelist(chessmove* mstart)
 {
     chessmove* m = mstart;
-    int me = pos->state & S2MMASK;
+    int me = state & S2MMASK;
     int you = me ^ S2MMASK;
     U64 targetbits;
     U64 frombits;
     int from, to;
     PieceCode pc;
-    int king = pos->kingpos[me];
-    U64 occupiedbits = (pos->occupied00[0] | pos->occupied00[1]);
+    int king = kingpos[me];
+    U64 occupiedbits = (occupied00[0] | occupied00[1]);
 
     // moving the king is alway a possibe evasion
-    targetbits = king_attacks[king] & ~pos->occupied00[me];
+    targetbits = king_attacks[king] & ~occupied00[me];
     while (targetbits)
     {
         to = pullLsb(&targetbits);
-        if (!pos->isAttackedBy<OCCUPIEDANDKING>(to, you) && !pos->isAttackedByMySlider(to, occupiedbits ^ BITSET(king), you))
+        if (!isAttackedBy<OCCUPIEDANDKING, Bt>(to, you) && !isAttackedByMySlider<Bt>(to, occupiedbits ^ BITSET(king), you))
         {
-            appendMoveToList(&m, king, to, WKING | me, pos->mailbox[to]);
+            appendMoveToList(&m, king, to, WKING | me, mailbox[to]);
         }
     }
 
-    if (POPCOUNT(pos->isCheckbb) == 1)
+    if (POPCOUNT(isCheckbb) == 1)
     {
         // only one attacker => capture or block the attacker is a possible evasion
         int attacker;
-        GETLSB(attacker, pos->isCheckbb);
+        GETLSB(attacker, isCheckbb);
         // special case: attacker is pawn and can be captured enpassant
-        if (pos->ept && pos->ept == attacker + S2MSIGN(me) * 8)
+        if (ept && ept == attacker + S2MSIGN(me) * 8)
         {
-            frombits = pawn_attacks_from[pos->ept][me] & pos->piece00[WPAWN | me];
+            frombits = pawn_attacks_from[ept][me] & piece00[WPAWN | me];
             while (frombits)
             {
                 from = pullLsb(&frombits);
@@ -2000,27 +1997,27 @@ int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
         }
         // now normal captures of the attacker
         to = attacker;
-        frombits = pos->isAttackedBy<OCCUPIED>(to, me);
+        frombits = isAttackedBy<OCCUPIED, Bt>(to, me);
         // later: blockers; targetbits will contain empty squares between king and attacking slider
         targetbits = betweenMask[king][attacker];
         while (true)
         {
-            frombits = frombits & ~pos->kingPinned;
+            frombits = frombits & ~kingPinned;
             while (frombits)
             {
                 from = pullLsb(&frombits);
-                pc = pos->mailbox[from];
+                pc = mailbox[from];
                 if ((pc >> 1) == PAWN)
                 {
                     if (PROMOTERANK(to))
                     {
-                        appendPromotionMove(pos, &m, from, to, me, QUEEN);
-                        appendPromotionMove(pos, &m, from, to, me, ROOK);
-                        appendPromotionMove(pos, &m, from, to, me, BISHOP);
-                        appendPromotionMove(pos, &m, from, to, me, KNIGHT);
+                        appendPromotionMove(this, &m, from, to, me, QUEEN);
+                        appendPromotionMove(this, &m, from, to, me, ROOK);
+                        appendPromotionMove(this, &m, from, to, me, BISHOP);
+                        appendPromotionMove(this, &m, from, to, me, KNIGHT);
                         continue;
                     }
-                    else if (!((from ^ to) & 0x8) && (epthelper[to] & pos->piece00[pc ^ S2MMASK]))
+                    else if (!((from ^ to) & 0x8) && (epthelper[to] & piece00[pc ^ S2MMASK]))
                     {
                         // EPT possible for opponent; set EPT field manually
                         appendMoveToList(&m, from, to, pc, BLANK);
@@ -2028,22 +2025,22 @@ int CreateEvasionMovelist(chessposition *pos, chessmove* mstart)
                         continue;
                     }
                 }
-                appendMoveToList(&m, from, to, pc, pos->mailbox[to]);
+                appendMoveToList(&m, from, to, pc, mailbox[to]);
             }
             if (!targetbits)
                 break;
             to = pullLsb(&targetbits);
-            frombits = pos->isAttackedBy<FREE>(to, me);  // <FREE> is needed here as the target fields are empty and pawns move normal
+            frombits = isAttackedBy<FREE, Bt>(to, me);  // <FREE> is needed here as the target fields are empty and pawns move normal
         }
     }
     return (int)(m - mstart);
 }
 
 
-template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart)
+template <MoveType Mt, BitboardType Bt> int chessposition::CreateMovelist(chessmove* mstart)
 {
-    int me = pos->state & S2MMASK;
-    U64 occupiedbits = (pos->occupied00[0] | pos->occupied00[1]);
+    int me = state & S2MMASK;
+    U64 occupiedbits = (occupied00[0] | occupied00[1]);
     U64 emptybits = ~occupiedbits;
     U64 targetbits = 0ULL;
     chessmove* m = mstart;
@@ -2051,22 +2048,22 @@ template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart)
     if (Mt & QUIET)
         targetbits |= emptybits;
     if (Mt & CAPTURE)
-        targetbits |= pos->occupied00[me ^ S2MMASK];
+        targetbits |= occupied00[me ^ S2MMASK];
 
-    m += CreateMovelistPawn<Mt>(pos, m, me);
-    m += CreateMovelistPiece<KNIGHT>(pos, m, occupiedbits, targetbits, me);
-    m += CreateMovelistPiece<BISHOP>(pos, m, occupiedbits, targetbits, me);
-    m += CreateMovelistPiece<ROOK>(pos, m, occupiedbits, targetbits, me);
-    m += CreateMovelistPiece<QUEEN>(pos, m, occupiedbits, targetbits, me);
-    m += CreateMovelistPiece<KING>(pos, m, occupiedbits, targetbits, me);
+    m += CreateMovelistPawn<Mt>(m, me);
+    m += CreateMovelistPiece<KNIGHT, Bt>(m, occupiedbits, targetbits, me);
+    m += CreateMovelistPiece<BISHOP, Bt>(m, occupiedbits, targetbits, me);
+    m += CreateMovelistPiece<ROOK, Bt>(m, occupiedbits, targetbits, me);
+    m += CreateMovelistPiece<QUEEN, Bt>(m, occupiedbits, targetbits, me);
+    m += CreateMovelistPiece<KING, Bt>(m, occupiedbits, targetbits, me);
     if (Mt & QUIET)
-        m += CreateMovelistCastle(pos, m, me);
+        m += CreateMovelistCastle<Bt>(m, me);
 
     return (int)(m - mstart);
 }
 
 
-U64 chessposition::movesTo(PieceCode pc, int from)
+template <BitboardType Bt> U64 chessposition::movesTo(PieceCode pc, int from)
 {
     PieceType p = (pc >> 1) ;
     int s2m = pc & S2MMASK;
@@ -2079,11 +2076,11 @@ U64 chessposition::movesTo(PieceCode pc, int from)
     case KNIGHT:
         return knight_attacks[from];
     case BISHOP:
-        return bishopAttacks(occ, from);
+        return bishopAttacks<Bt>(occ, from);
     case ROOK:
-        return rookAttacks(occ, from);
+        return rookAttacks<Bt>(occ, from);
     case QUEEN:
-        return bishopAttacks(occ, from) | rookAttacks(occ, from);
+        return bishopAttacks<Bt>(occ, from) | rookAttacks<Bt>(occ, from);
     case KING:
         return king_attacks[from];
     default:
@@ -2092,8 +2089,7 @@ U64 chessposition::movesTo(PieceCode pc, int from)
 }
 
 
-template <PieceType Pt>
-U64 chessposition::pieceMovesTo(int from)
+template <PieceType Pt, BitboardType Bt> U64 chessposition::pieceMovesTo(int from)
 {
     U64 occ = occupied00[0] | occupied00[1];
     switch (Pt)
@@ -2101,11 +2097,11 @@ U64 chessposition::pieceMovesTo(int from)
     case KNIGHT:
         return knight_attacks[from];
     case BISHOP:
-        return bishopAttacks(occ, from);
+        return bishopAttacks<Bt>(occ, from);
     case ROOK:
-        return rookAttacks(occ, from);
+        return rookAttacks<Bt>(occ, from);
     case QUEEN:
-        return bishopAttacks(occ, from) | rookAttacks(occ, from);
+        return bishopAttacks<Bt>(occ, from) | rookAttacks<Bt>(occ, from);
     default:
         return 0ULL;
     }
@@ -2113,12 +2109,12 @@ U64 chessposition::pieceMovesTo(int from)
 
 
 // this is only used for king attacks, so opponent king attacks can be left out
-template <AttackType At> U64 chessposition::isAttackedBy(int index, int col)
+template <AttackType At, BitboardType Bt> U64 chessposition::isAttackedBy(int index, int col)
 {
     U64 occ = occupied00[0] | occupied00[1];
     return (knight_attacks[index] & piece00[WKNIGHT | col])
-        | (rookAttacks(occ, index) & (piece00[WROOK | col] | piece00[WQUEEN | col]))
-        | (bishopAttacks(occ, index) & (piece00[WBISHOP | col] | piece00[WQUEEN | col]))
+        | (rookAttacks<Bt>(occ, index) & (piece00[WROOK | col] | piece00[WQUEEN | col]))
+        | (bishopAttacks<Bt>(occ, index) & (piece00[WBISHOP | col] | piece00[WQUEEN | col]))
         | (piece00[WPAWN | col] & (At != FREE ?
             pawn_attacks_from[index][col] :
             pawn_moves_from[index][col] | (pawn_moves_from_double[index][col] & PAWNPUSH(col ^ S2MMASK, ~occ))))
@@ -2126,33 +2122,33 @@ template <AttackType At> U64 chessposition::isAttackedBy(int index, int col)
 }
 
 
-bool chessposition::isAttacked(int index, int Me)
+template <BitboardType Bt> bool chessposition::isAttacked(int index, int Me)
 {
     int opponent = Me ^ S2MMASK;
 
     return knight_attacks[index] & piece00[WKNIGHT | opponent]
         || king_attacks[index] & piece00[WKING | opponent]
         || pawn_attacks_to[index][state & S2MMASK] & piece00[(PAWN << 1) | opponent]
-        || rookAttacks(occupied00[0] | occupied00[1], index) & (piece00[WROOK | opponent] | piece00[WQUEEN | opponent])
-        || bishopAttacks(occupied00[0] | occupied00[1], index) & (piece00[WBISHOP | opponent] | piece00[WQUEEN | opponent]);
+        || rookAttacks<Bt>(occupied00[0] | occupied00[1], index) & (piece00[WROOK | opponent] | piece00[WQUEEN | opponent])
+        || bishopAttacks<Bt>(occupied00[0] | occupied00[1], index) & (piece00[WBISHOP | opponent] | piece00[WQUEEN | opponent]);
 }
 
 // used for checkevasion test, could be usefull for discovered check test
-U64 chessposition::isAttackedByMySlider(int index, U64 occ, int me)
+template <BitboardType Bt> U64 chessposition::isAttackedByMySlider(int index, U64 occ, int me)
 {
-    return (rookAttacks(occ, index) & (piece00[WROOK | me] | piece00[WQUEEN | me]))
-        | (bishopAttacks(occ, index) & (piece00[WBISHOP | me] | piece00[WQUEEN | me]));
+    return (rookAttacks<Bt>(occ, index) & (piece00[WROOK | me] | piece00[WQUEEN | me]))
+        | (bishopAttacks<Bt>(occ, index) & (piece00[WBISHOP | me] | piece00[WQUEEN | me]));
 }
 
 
-U64 chessposition::attackedByBB(int index, U64 occ)
+template <BitboardType Bt> U64 chessposition::attackedByBB(int index, U64 occ)
 {
     return (knight_attacks[index] & (piece00[WKNIGHT] | piece00[BKNIGHT]))
         | (king_attacks[index] & (piece00[WKING] | piece00[BKING]))
         | (pawn_attacks_to[index][1] & piece00[WPAWN])
         | (pawn_attacks_to[index][0] & piece00[BPAWN])
-        | (rookAttacks(occ, index) & (piece00[WROOK] | piece00[BROOK] | piece00[WQUEEN] | piece00[BQUEEN]))
-        | (bishopAttacks(occ, index) & (piece00[WBISHOP] | piece00[BBISHOP] | piece00[WQUEEN] | piece00[BQUEEN]));
+        | (rookAttacks<Bt>(occ, index) & (piece00[WROOK] | piece00[BROOK] | piece00[WQUEEN] | piece00[BQUEEN]))
+        | (bishopAttacks<Bt>(occ, index) & (piece00[WBISHOP] | piece00[BBISHOP] | piece00[WQUEEN] | piece00[BQUEEN]));
 }
 
 
@@ -2165,7 +2161,7 @@ int chessposition::phase()
 
 
 // more advanced see respecting a variable threshold, quiet and promotion moves and faster xray attack handling
-bool chessposition::see(uint32_t move, int threshold)
+template <BitboardType Bt> bool chessposition::see(uint32_t move, int threshold)
 {
     int from = GETFROM(move);
     int to = GETCORRECTTO(move);
@@ -2190,7 +2186,7 @@ bool chessposition::see(uint32_t move, int threshold)
     U64 potentialBishopAttackers = (piece00[WBISHOP] | piece00[BBISHOP] | piece00[WQUEEN] | piece00[BQUEEN]);
 
     // Get attackers excluding the already moved piece
-    U64 attacker = attackedByBB(to, seeOccupied) & seeOccupied;
+    U64 attacker = attackedByBB<Bt>(to, seeOccupied) & seeOccupied;
 
     int s2m = (state & S2MMASK) ^ S2MMASK;
 
@@ -2213,9 +2209,9 @@ bool chessposition::see(uint32_t move, int threshold)
 
         // Add new shifting attackers but exclude already moved attackers using current seeOccupied
         if ((nextPiece & 0x1) || nextPiece == KING)  // pawn, bishop, queen, king
-            attacker |= (bishopAttacks(seeOccupied, to) & potentialBishopAttackers);
+            attacker |= (bishopAttacks<Bt>(seeOccupied, to) & potentialBishopAttackers);
         if (nextPiece == ROOK || nextPiece == QUEEN || nextPiece == KING)
-            attacker |= (rookAttacks(seeOccupied, to) & potentialRookAttackers);
+            attacker |= (rookAttacks<Bt>(seeOccupied, to) & potentialRookAttackers);
 
         // Remove attacker
         attacker &= seeOccupied;
@@ -2279,10 +2275,10 @@ void MoveSelector::SetPreferredMoves(chessposition *p)
 }
 
 // MoveSelector for alphabeta search
-void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove)
+template <BitboardType Bt> void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove)
 {
     pos = p;
-    hashmove.code = p->shortMove2FullMove(hshm);
+    hashmove.code = p->shortMove2FullMove<Bt>(hshm);
     if (kllm1 != hashmove.code)
         killermove1.code = kllm1;
     if (kllm2 != hashmove.code)
@@ -2305,7 +2301,7 @@ void MoveSelector::SetPreferredMoves(chessposition *p, uint16_t hshm, uint32_t k
 }
 
 
-chessmove* MoveSelector::next()
+template <BitboardType Bt> chessmove* MoveSelector::next()
 {
     chessmove *m;
     switch (state)
@@ -2322,13 +2318,13 @@ chessmove* MoveSelector::next()
         // fall through
     case TACTICALINITSTATE:
         state++;
-        captures->length = CreateMovelist<TACTICAL>(pos, &captures->move[0]);
-        evaluateMoves<CAPTURE>(captures, pos, &cmptr[0]);
+        captures->length = pos->CreateMovelist<TACTICAL, Bt>(&captures->move[0]);
+        pos->evaluateMoves<CAPTURE>(captures, &cmptr[0]);
         // fall through
     case TACTICALSTATE:
         while ((m = captures->getNextMove(0)))
         {
-            if (!pos->see(m->code, onlyGoodCaptures))
+            if (!pos->see<Bt>(m->code, onlyGoodCaptures))
             {
                 m->value |= BADTACTICALFLAG;
             }
@@ -2344,29 +2340,29 @@ chessmove* MoveSelector::next()
         // fall through
     case KILLERMOVE1STATE:
         state++;
-        if (pos->moveIsPseudoLegal(killermove1.code))
+        if (pos->moveIsPseudoLegal<Bt>(killermove1.code))
         {
             return &killermove1;
         }
         // fall through
     case KILLERMOVE2STATE:
         state++;
-        if (pos->moveIsPseudoLegal(killermove2.code))
+        if (pos->moveIsPseudoLegal<Bt>(killermove2.code))
         {
             return &killermove2;
         }
         // fall through
     case COUNTERMOVESTATE:
         state++;
-        if (pos->moveIsPseudoLegal(countermove.code))
+        if (pos->moveIsPseudoLegal<Bt>(countermove.code))
         {
             return &countermove;
         }
         // fall through
     case QUIETINITSTATE:
         state++;
-        quiets->length = CreateMovelist<QUIET>(pos, &quiets->move[0]);
-        evaluateMoves<QUIET>(quiets, pos, &cmptr[0]);
+        quiets->length = pos->CreateMovelist<QUIET, Bt>(&quiets->move[0]);
+        pos->evaluateMoves<QUIET>(quiets, &cmptr[0]);
         // fall through
     case QUIETSTATE:
         while ((m = quiets->getNextMove()))
@@ -2396,8 +2392,8 @@ chessmove* MoveSelector::next()
         return nullptr;
     case EVASIONINITSTATE:
         state++;
-        captures->length = CreateEvasionMovelist(pos, &captures->move[0]);
-        evaluateMoves<ALL>(captures, pos, &cmptr[0]);
+        captures->length = pos->CreateEvasionMovelist<Bt>(&captures->move[0]);
+        pos->evaluateMoves<ALL>(captures, &cmptr[0]);
         // fall through
     case EVASIONSTATE:
         while ((m = captures->getNextMove()))
@@ -2507,7 +2503,7 @@ void engine::allocThreads()
         sthread[i].index = i;
         sthread[i].searchthreads = sthread;
         sthread[i].numofthreads = Threads;
-        sthread[i].pos = new chessposition_magic();
+        sthread[i].pos = new chessposition();
     }
     allocPawnhash();
     prepareThreads();
@@ -2820,7 +2816,7 @@ void engine::communicate(string inputstring)
                 break;
             case EVAL:
                 en.evaldetails = (ci < cs && commandargs[ci] == "detail");
-                sthread[0].pos->getEval<TRACE>();
+                sthread[0].pos->getEval<TRACE, BT_MAGIC>();
                 break;
             case PERFT:
                 if (ci < cs) {
@@ -2964,10 +2960,10 @@ void ucioptions_t::Print()
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template U64 chessposition::pieceMovesTo<KNIGHT>(int);
-template U64 chessposition::pieceMovesTo<BISHOP>(int);
-template U64 chessposition::pieceMovesTo<ROOK>(int);
-template U64 chessposition::pieceMovesTo<QUEEN>(int);
+template U64 chessposition::pieceMovesTo<KNIGHT, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<BISHOP, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<ROOK, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<QUEEN, BT_MAGIC>(int);
 
 
 // Some global objects
@@ -2977,4 +2973,9 @@ engine en;
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template U64 chessposition::isAttackedBy<OCCUPIED>(int index, int col);
+template U64 chessposition::isAttackedBy<OCCUPIED, BT_MAGIC>(int index, int col);
+template int chessposition::CreateEvasionMovelist<BT_MAGIC>(chessmove*);
+template chessmove* MoveSelector::next<BT_MAGIC>();
+template void MoveSelector::SetPreferredMoves<BT_MAGIC>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
+template bool chessposition::moveGivesCheck<BT_MAGIC>(uint32_t c);
+
