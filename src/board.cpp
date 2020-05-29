@@ -1222,6 +1222,8 @@ void chessposition::pvdebugout()
 // shameless copy from http://chessprogramming.wikispaces.com/Magic+Bitboards#Plain
 U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
 U64 mRookAttacks[64][1 << ROOKINDEXBITS];
+U64 pBishopAttacks[64][1 << BISHOPINDEXBITS];
+U64 pRookAttacks[64][1 << ROOKINDEXBITS];
 
 SMagic mBishopTbl[64];
 SMagic mRookTbl[64];
@@ -1460,8 +1462,8 @@ void initBitmaphelper()
             U64 occ = getOccupiedFromMBIndex(j, mBishopTbl[from].mask);
             // Now get the attack bitmap for this subset and store to attack table
             U64 attack = (getAttacks(from, occ, -7) | getAttacks(from, occ, 7) | getAttacks(from, occ, -9) | getAttacks(from, occ, 9));
-            int hashindex = MAGICBISHOPINDEX(occ, from);
-            mBishopAttacks[from][hashindex] = attack;
+            mBishopAttacks[from][MAGICBISHOPINDEX(occ, from)] = attack;
+            pBishopAttacks[from][PEXTBISHOPINDEX(occ, from)] = attack;
         }
 
         // mRookTbl[from].magic = getMagicCandidate(mRookTbl[from].mask);
@@ -1472,8 +1474,8 @@ void initBitmaphelper()
             U64 occ = getOccupiedFromMBIndex(j, mRookTbl[from].mask);
             // Now get the attack bitmap for this subset and store to attack table
             U64 attack = (getAttacks(from, occ, -1) | getAttacks(from, occ, 1) | getAttacks(from, occ, -8) | getAttacks(from, occ, 8));
-            int hashindex = MAGICROOKINDEX(occ, from);
-            mRookAttacks[from][hashindex] = attack;
+            mRookAttacks[from][MAGICROOKINDEX(occ, from)] = attack;
+            pRookAttacks[from][PEXTROOKINDEX(occ, from)] = attack;
         }
 
         epthelper[from] = 0ULL;
@@ -2957,15 +2959,6 @@ void ucioptions_t::Print()
     }
 }
 
-
-// Explicit template instantiation
-// This avoids putting these definitions in header file
-template U64 chessposition::pieceMovesTo<KNIGHT, BT_MAGIC>(int);
-template U64 chessposition::pieceMovesTo<BISHOP, BT_MAGIC>(int);
-template U64 chessposition::pieceMovesTo<ROOK, BT_MAGIC>(int);
-template U64 chessposition::pieceMovesTo<QUEEN, BT_MAGIC>(int);
-
-
 // Some global objects
 evalparamset eps;
 zobrist zb;
@@ -2975,7 +2968,22 @@ engine en;
 // This avoids putting these definitions in header file
 template U64 chessposition::isAttackedBy<OCCUPIED, BT_MAGIC>(int index, int col);
 template int chessposition::CreateEvasionMovelist<BT_MAGIC>(chessmove*);
+template int chessposition::CreateMovelist<ALL, BT_PEXT>(chessmove* mstart);
 template chessmove* MoveSelector::next<BT_MAGIC>();
+template chessmove* MoveSelector::next<BT_PEXT>();
 template void MoveSelector::SetPreferredMoves<BT_MAGIC>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
+template void MoveSelector::SetPreferredMoves<BT_PEXT>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
 template bool chessposition::moveGivesCheck<BT_MAGIC>(uint32_t c);
+template bool chessposition::moveGivesCheck<BT_PEXT>(uint32_t c);
+template uint32_t chessposition::shortMove2FullMove<BT_MAGIC>(uint16_t c);
+template uint32_t chessposition::shortMove2FullMove<BT_PEXT>(uint16_t c);
+template U64 chessposition::pieceMovesTo<KNIGHT, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<BISHOP, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<ROOK, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<QUEEN, BT_MAGIC>(int);
+template U64 chessposition::pieceMovesTo<KNIGHT, BT_PEXT>(int);
+template U64 chessposition::pieceMovesTo<BISHOP, BT_PEXT>(int);
+template U64 chessposition::pieceMovesTo<ROOK, BT_PEXT>(int);
+template U64 chessposition::pieceMovesTo<QUEEN, BT_PEXT>(int);
+template bool chessposition::playMove<BT_PEXT>(chessmove *cm);
 

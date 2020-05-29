@@ -1079,7 +1079,7 @@ static void search_gen1(searchthread *thr)
     int inWindow;
     bool reportedThisDepth;
 
-    const BitboardType Bt = BT_MAGIC;
+    const BitboardType Bt = BT_PEXT; //BT_MAGIC;
 
 #ifdef TDEBUG
     en.bStopCount = false;
@@ -1593,3 +1593,7 @@ void search_statistics()
     printf("(ST)==================================================================================================================================================\n");
 }
 #endif
+
+// Explicit template instantiation
+// This avoids putting these definitions in header file
+template int chessposition::getQuiescence<BT_MAGIC>(int alpha, int beta, int depth);

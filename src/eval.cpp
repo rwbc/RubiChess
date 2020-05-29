@@ -893,3 +893,5 @@ void chessposition::getScaling(Materialhashentry* mhentry)
 // This avoids putting these definitions in header file
 template int chessposition::getEval<NOTRACE, BT_MAGIC>();
 template int chessposition::getEval<TRACE, BT_MAGIC>();
+template int chessposition::getEval<NOTRACE, BT_PEXT>();
+template int chessposition::getEval<TRACE, BT_PEXT>();

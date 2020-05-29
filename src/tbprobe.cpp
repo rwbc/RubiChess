@@ -812,4 +812,6 @@ template <BitboardType Bt> int root_probe_wdl(chessposition *pos)
 // This avoids putting these definitions in header file
 template int root_probe_wdl<BT_MAGIC>(chessposition *);
 template int root_probe_dtz<BT_MAGIC>(chessposition *);
+template int probe_wdl<BT_MAGIC>(int *success, chessposition *pos);
+template int probe_wdl<BT_PEXT>(int *success, chessposition *pos);
 

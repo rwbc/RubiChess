@@ -1016,8 +1016,15 @@ extern SMagic mRookTbl[64];
 #define MAGICBISHOPATTACKS(m,x) (mBishopAttacks[x][MAGICBISHOPINDEX(m,x)])
 #define MAGICROOKATTACKS(m,x) (mRookAttacks[x][MAGICROOKINDEX(m,x)])
 
+#define PEXTBISHOPINDEX(m,x) (_pext_u64(m, mBishopTbl[x].mask))
+#define PEXTROOKINDEX(m,x) (_pext_u64(m, mRookTbl[x].mask))
+#define PEXTBISHOPATTACKS(m,x) (pBishopAttacks[x][PEXTBISHOPINDEX(m,x)])
+#define PEXTROOKATTACKS(m,x) (pRookAttacks[x][PEXTROOKINDEX(m,x)])
+
 extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
 extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
+extern U64 pBishopAttacks[64][1 << BISHOPINDEXBITS];
+extern U64 pRookAttacks[64][1 << ROOKINDEXBITS];
 
 enum MoveType { QUIET = 1, CAPTURE = 2, PROMOTE = 4, TACTICAL = 6, ALL = 7 };
 enum RootsearchType { SinglePVSearch, MultiPVSearch, PonderSearch };
@@ -1149,7 +1156,7 @@ public:
     void unplayNullMove();
 
     template <BitboardType Bt> inline int CreateMovelistCastle(chessmove* mstart, int me);
-    template <BitboardType Bt> inline int CreateEvasionMovelist(chessmove* mstart);
+    template <BitboardType Bt> int CreateEvasionMovelist(chessmove* mstart);
     template <MoveType Mt, BitboardType Bt> int CreateMovelist(chessmove* mstart);
     template <PieceType Pt, BitboardType Bt> inline int CreateMovelistPiece(chessmove* mstart, U64 occ, U64 targets, int me);
     template <MoveType Mt> inline int CreateMovelistPawn(chessmove* mstart, int me);
@@ -1182,11 +1189,11 @@ public:
 
     template<BitboardType Bt> inline U64 rookAttacks(U64 occ, int from) {
         if (Bt == BT_MAGIC) return MAGICROOKATTACKS(occ, from);
-        if (Bt == BT_PEXT) return 0ULL;
+        if (Bt == BT_PEXT) return PEXTROOKATTACKS(occ, from);
     }
     template<BitboardType Bt> inline U64 bishopAttacks(U64 occ, int from) {
         if (Bt == BT_MAGIC) return MAGICBISHOPATTACKS(occ, from);
-        if (Bt == BT_PEXT) return 0ULL;
+        if (Bt == BT_PEXT) return PEXTBISHOPATTACKS(occ, from);
     }
 
 #ifdef SDEBUG
