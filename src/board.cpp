@@ -921,7 +921,7 @@ template <BitboardType Bt> bool chessposition::moveIsPseudoLegal(uint32_t c)
             // test if "making ep capture possible" is both true or false
             int myept = GETEPT(c);
             {
-                if (!myept == (bool)(epthelper[to] & piece00[pc ^ 1]))
+                if (!(bool)myept == (bool)(epthelper[to] & piece00[pc ^ 1]))
                     return false;
             }
         }
