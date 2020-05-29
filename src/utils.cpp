@@ -18,6 +18,113 @@
 
 #include "RubiChess.h"
 
+
+#ifdef _WIN32
+void engine::GetSystemInfo()
+{
+    // shameless copy from MSDN example explaining __cpuid
+    char CPUString[0x20];
+    char CPUBrandString[0x40];
+    int CPUInfo[4] = { -1 };
+    //int nCacheLineSize = 0; // Maybe usefull for TT sizing
+
+    unsigned    nIds, nExIds, i;
+    bool    bPOPCNT = false;
+    bool    bBMI2 = false;
+
+
+    __cpuid(CPUInfo, 0);
+    nIds = CPUInfo[0];
+    memset(CPUString, 0, sizeof(CPUString));
+    *((int*)CPUString) = CPUInfo[1];
+    *((int*)(CPUString + 4)) = CPUInfo[3];
+    *((int*)(CPUString + 8)) = CPUInfo[2];
+
+    // Get the information associated with each valid Id
+    for (i = 0; i <= nIds; ++i)
+    {
+        __cpuid(CPUInfo, i);
+        // Interpret CPU feature information.
+        if (i == 1)
+        {
+            bPOPCNT = (CPUInfo[2] & 0x800000) || false;
+        }
+
+        if (i == 7)
+        {
+            // this is not in the MSVC2012 example but may be useful later
+            bBMI2 = (CPUInfo[1] & 0x100) || false;
+        }
+    }
+
+    en.maxBt = bBMI2 ? BT_PEXT : BT_MAGIC;
+
+    printf("popcount: %d  bmi2: %d\n", bPOPCNT, bBMI2);
+
+    // Calling __cpuid with 0x80000000 as the InfoType argument
+    // gets the number of valid extended IDs.
+    __cpuid(CPUInfo, 0x80000000);
+    nExIds = CPUInfo[0];
+    memset(CPUBrandString, 0, sizeof(CPUBrandString));
+
+    // Get the information associated with each extended ID.
+    for (i = 0x80000000; i <= nExIds; ++i)
+    {
+        __cpuid(CPUInfo, i);
+
+        // Interpret CPU brand string and cache information.
+        if (i == 0x80000002)
+            memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
+        else if (i == 0x80000003)
+            memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
+        else if (i == 0x80000004)
+            memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
+    }
+
+    system = CPUBrandString;
+    system += bBMI2 ? " PEXT BB" : "MAGIC BB";
+    Bt = maxBt;
+}
+
+#else
+
+string engine::GetSystemInfo()
+{
+    maxBt = BT_MAGIC;
+    system = "some Linux box";
+}
+
+#endif
+
+// Measure performance for MAGIC Bitboard and PEXT Bitboard and select the faster one
+// Useful to disable PEXT for AMD Zen architecture
+void engine::BenchCpu()
+{
+    U64 score_magic = 0;
+    U64 start = getTime();
+    for (int j = 0; j < 100000000; j++)
+        score_magic += rootposition.rookAttacks<BT_MAGIC>(j, j % 64);
+    U64 time_magic = getTime() - start;
+    printf("Bench(magic): %4.6f  score=%llx\n", time_magic / (double)frequency, score_magic);
+    if (maxBt >= BT_PEXT)
+    {
+        U64 score_pext = 0;
+        start = getTime();
+        for (int j = 0; j < 100000000; j++)
+            score_pext += rootposition.rookAttacks<BT_PEXT>(j, j % 64);
+        U64 time_pext = getTime() - start;
+        printf("Bench(pext):  %4.6f  score=%llx\n", time_pext / (double)frequency, score_pext);
+        if (score_magic != score_pext)
+        {
+            printf("Alarm! Magic und PEXT nicht konsistent!\n");
+        }
+        if (time_pext > time_magic)
+            // PEXT slower than expected (probably AMD Zen); switch to magic bitboards
+            Bt = BT_MAGIC;
+    }
+}
+
+
 // Produce a 64-bit material key corresponding to the material combination
 // defined by pcs[16], where pcs[1], ..., pcs[6] is the number of white
 // pawns, ..., kings and pcs[9], ..., pcs[14] is the number of black

@@ -1068,8 +1068,7 @@ static void uciScore(searchthread *thr, int inWindow, U64 nowtime, int score, in
 }
 
 
-template <RootsearchType RT>
-static void search_gen1(searchthread *thr)
+template <RootsearchType RT, BitboardType Bt> static void search_gen1(searchthread *thr)
 {
     int score;
     int alpha, beta;
@@ -1078,8 +1077,6 @@ static void search_gen1(searchthread *thr)
     int maxdepth;
     int inWindow;
     bool reportedThisDepth;
-
-    const BitboardType Bt = BT_PEXT; //BT_MAGIC;
 
 #ifdef TDEBUG
     en.bStopCount = false;
@@ -1463,13 +1460,22 @@ void searchStart()
 
     if (en.MultiPV == 1 && !en.ponder)
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch>, &en.sthread[tnum]);
+            if (en.Bt == BT_PEXT)
+                en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch, BT_PEXT>, &en.sthread[tnum]);
+            else
+                en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch, BT_MAGIC>, &en.sthread[tnum]);
     else if (en.ponder)
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            en.sthread[tnum].thr = thread(&search_gen1<PonderSearch>, &en.sthread[tnum]);
+            if (en.Bt == BT_PEXT)
+                en.sthread[tnum].thr = thread(&search_gen1<PonderSearch, BT_PEXT>, &en.sthread[tnum]);
+            else
+                en.sthread[tnum].thr = thread(&search_gen1<PonderSearch, BT_MAGIC>, &en.sthread[tnum]);
     else
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch>, &en.sthread[tnum]);
+            if (en.Bt == BT_PEXT)
+                en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch, BT_PEXT>, &en.sthread[tnum]);
+            else
+                en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch, BT_MAGIC>, &en.sthread[tnum]);
 }
 
 

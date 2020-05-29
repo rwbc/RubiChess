@@ -1188,12 +1188,16 @@ public:
     inline void CheckForImmediateStop();
 
     template<BitboardType Bt> inline U64 rookAttacks(U64 occ, int from) {
-        if (Bt == BT_MAGIC) return MAGICROOKATTACKS(occ, from);
-        if (Bt == BT_PEXT) return PEXTROOKATTACKS(occ, from);
+        if (Bt == BT_MAGIC)
+            return MAGICROOKATTACKS(occ, from);
+        if (Bt == BT_PEXT)
+            return PEXTROOKATTACKS(occ, from);
     }
     template<BitboardType Bt> inline U64 bishopAttacks(U64 occ, int from) {
-        if (Bt == BT_MAGIC) return MAGICBISHOPATTACKS(occ, from);
-        if (Bt == BT_PEXT) return PEXTBISHOPATTACKS(occ, from);
+        if (Bt == BT_MAGIC) 
+            return MAGICBISHOPATTACKS(occ, from);
+        if (Bt == BT_PEXT) 
+            return PEXTBISHOPATTACKS(occ, from);
     }
 
 #ifdef SDEBUG
@@ -1312,6 +1316,10 @@ public:
     int benchdepth;
     string benchmove;
     ucioptions_t ucioptions;
+    BitboardType maxBt;
+    BitboardType Bt;
+
+    string system;
 #ifdef STACKDEBUG
     string assertfile = "";
 #endif
@@ -1333,6 +1341,8 @@ public:
     long long perft(int depth, bool dotests);
     void prepareThreads();
     void resetStats();
+    void GetSystemInfo();
+    void BenchCpu();
 };
 
 PieceType GetPieceType(char c);
