@@ -1463,8 +1463,10 @@ void initBitmaphelper()
             // Now get the attack bitmap for this subset and store to attack table
             U64 attack = (getAttacks(from, occ, -7) | getAttacks(from, occ, 7) | getAttacks(from, occ, -9) | getAttacks(from, occ, 9));
             mBishopAttacks[from][MAGICBISHOPINDEX(occ, from)] = attack;
+#if defined(_M_X64) || defined(__amd64)
             if (en.maxBt >= BT_PEXT)
                 pBishopAttacks[from][PEXTBISHOPINDEX(occ, from)] = attack;
+#endif
         }
 
         // mRookTbl[from].magic = getMagicCandidate(mRookTbl[from].mask);
@@ -1476,8 +1478,10 @@ void initBitmaphelper()
             // Now get the attack bitmap for this subset and store to attack table
             U64 attack = (getAttacks(from, occ, -1) | getAttacks(from, occ, 1) | getAttacks(from, occ, -8) | getAttacks(from, occ, 8));
             mRookAttacks[from][MAGICROOKINDEX(occ, from)] = attack;
+#if defined(_M_X64) || defined(__amd64)
             if (en.maxBt >= BT_PEXT)
                 pRookAttacks[from][PEXTROOKINDEX(occ, from)] = attack;
+#endif
         }
 
         epthelper[from] = 0ULL;

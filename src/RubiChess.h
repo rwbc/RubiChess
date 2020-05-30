@@ -1017,16 +1017,22 @@ extern SMagic mRookTbl[64];
 #define MAGICROOKINDEX(m,x) (int)((((m) & mRookTbl[x].mask) * mRookTbl[x].magic) >> (64 - ROOKINDEXBITS))
 #define MAGICBISHOPATTACKS(m,x) (mBishopAttacks[x][MAGICBISHOPINDEX(m,x)])
 #define MAGICROOKATTACKS(m,x) (mRookAttacks[x][MAGICROOKINDEX(m,x)])
+extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
+extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 
+#if defined(_M_X64) || defined(__amd64)
 #define PEXTBISHOPINDEX(m,x) (_pext_u64(m, mBishopTbl[x].mask))
 #define PEXTROOKINDEX(m,x) (_pext_u64(m, mRookTbl[x].mask))
 #define PEXTBISHOPATTACKS(m,x) (pBishopAttacks[x][PEXTBISHOPINDEX(m,x)])
 #define PEXTROOKATTACKS(m,x) (pRookAttacks[x][PEXTROOKINDEX(m,x)])
-
-extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
-extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 extern U64 pBishopAttacks[64][1 << BISHOPINDEXBITS];
 extern U64 pRookAttacks[64][1 << ROOKINDEXBITS];
+#else
+// Fallback for non-x86-64 platform
+#define PEXTBISHOPATTACKS(m,x) MAGICBISHOPATTACKS(m,x)
+#define PEXTROOKATTACKS(m,x) MAGICROOKATTACKS(m,x)
+#endif
+
 
 enum MoveType { QUIET = 1, CAPTURE = 2, PROMOTE = 4, TACTICAL = 6, ALL = 7 };
 enum RootsearchType { SinglePVSearch, MultiPVSearch, PonderSearch };
