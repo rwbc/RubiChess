@@ -10,7 +10,7 @@ ifeq ($(COMP),gcc)
 	CXX=g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(shell uname -m),x86_64)
-		ARCHFLAGS=-msse3 -mpopcnt -mbmi2
+		ARCHFLAGS=-msse3 -mpopcnt
 	endif
 	ifeq ($(shell uname -m),armv7l)
 		ARCHFLAGS=-march=armv7-a
@@ -25,7 +25,7 @@ ifeq ($(COMP),clang)
 	CXX=clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(shell uname -m),x86_64)
-		ARCHFLAGS=-msse3 -mpopcnt -mbmi2
+		ARCHFLAGS=-msse3 -mpopcnt
 	endif
 	ifeq ($(shell uname -m),armv7l)
 		ARCHFLAGS=-march=armv7-a

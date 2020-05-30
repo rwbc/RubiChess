@@ -1020,9 +1020,26 @@ extern SMagic mRookTbl[64];
 extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
 extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 
+inline U64 mypext(U64 m, U64 i)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+    return _pext_u64(m, i);
+#else
+    U64 res;
+
+    asm("pext %2, %1, %0;"
+        : "=r" (res)
+        : "r" (m), "r" (i)
+    );
+
+    return res;
+#endif
+}
+
+
 #if defined(_M_X64) || defined(__amd64)
-#define PEXTBISHOPINDEX(m,x) (_pext_u64(m, mBishopTbl[x].mask))
-#define PEXTROOKINDEX(m,x) (_pext_u64(m, mRookTbl[x].mask))
+#define PEXTBISHOPINDEX(m,x) (mypext(m, mBishopTbl[x].mask))
+#define PEXTROOKINDEX(m,x) (mypext(m, mRookTbl[x].mask))
 #define PEXTBISHOPATTACKS(m,x) (pBishopAttacks[x][PEXTBISHOPINDEX(m,x)])
 #define PEXTROOKATTACKS(m,x) (pRookAttacks[x][PEXTROOKINDEX(m,x)])
 extern U64 pBishopAttacks[64][1 << BISHOPINDEXBITS];

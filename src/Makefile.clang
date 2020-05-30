@@ -22,7 +22,7 @@ PROFEXE2=$(EXE2)-Prof
 PROFDATATOOLEXE=llvm-profdata
 
 CXXFLAGS=/GX /O2 /Oi /Ot /c -flto -fuse-ld=lld
-ARCHFLAGS=-msse3 -mpopcnt -mbmi2
+ARCHFLAGS=-msse3 -mpopcnt 
 LDFLAGS=/OPT:REF /OPT:ICF
 PROFLIB=$(LLVMInstallDir)\lib\clang\8.0.0\lib\windows\clang_rt.profile-x86_64.lib
 
