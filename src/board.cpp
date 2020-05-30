@@ -2480,8 +2480,6 @@ engine::engine()
 #else
     frequency = 1000000000LL;
 #endif
-
-    BenchCpu();
 }
 
 engine::~engine()

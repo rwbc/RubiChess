@@ -18,54 +18,65 @@
 
 #include "RubiChess.h"
 
+#if defined(_M_X64) || defined(__amd64)
 
-#ifdef _WIN32
+#ifdef _MSC_VER
+#define CPUID(x,i) __cpuid(x, i)
+#endif
+
+#if defined(__MINGW64__) || defined(__gnu_linux__)
+#include <cpuid.h>
+#define CPUID(x,i) cpuid(x, i)
+static void cpuid(int32_t out[4], int32_t x) {
+    __cpuid_count(x, 0, out[0], out[1], out[2], out[3]);
+}
+#endif
+
 void engine::GetSystemInfo()
 {
     // shameless copy from MSDN example explaining __cpuid
     char CPUBrandString[0x40];
     int CPUInfo[4] = { -1 };
-    //int nCacheLineSize = 0; // Maybe usefull for TT sizing
 
     unsigned    nIds, nExIds, i;
     bool    bPOPCNT = false;
     bool    bBMI2 = false;
 
 
-    __cpuid(CPUInfo, 0);
+    CPUID(CPUInfo, 0);
     nIds = CPUInfo[0];
 
     // Get the information associated with each valid Id
     for (i = 0; i <= nIds; ++i)
     {
-        __cpuid(CPUInfo, i);
+        CPUID(CPUInfo, i);
         // Interpret CPU feature information.
         if (i == 1)
         {
             bPOPCNT = (CPUInfo[2] & 0x800000) || false;
+            printf("teste popcnt... %d\n", bPOPCNT);
         }
 
         if (i == 7)
         {
             // this is not in the MSVC2012 example but may be useful later
             bBMI2 = (CPUInfo[1] & 0x100) || false;
+            printf("teste bmi2... %d\n", bBMI2);
         }
     }
 
     en.maxBt = bBMI2 ? BT_PEXT : BT_MAGIC;
 
-    printf("popcount: %d  bmi2: %d\n", bPOPCNT, bBMI2);
-
     // Calling __cpuid with 0x80000000 as the InfoType argument
     // gets the number of valid extended IDs.
-    __cpuid(CPUInfo, 0x80000000);
+    CPUID(CPUInfo, 0x80000000);
     nExIds = CPUInfo[0];
     memset(CPUBrandString, 0, sizeof(CPUBrandString));
 
     // Get the information associated with each extended ID.
     for (i = 0x80000000; i <= nExIds; ++i)
     {
-        __cpuid(CPUInfo, i);
+        CPUID(CPUInfo, i);
 
         // Interpret CPU brand string and cache information.
         if (i == 0x80000002)
@@ -77,83 +88,19 @@ void engine::GetSystemInfo()
     }
 
     system = CPUBrandString;
-    system += bBMI2 ? " PEXT BB" : "MAGIC BB";
-    Bt = maxBt;
+
+    printf("popcount:%d  pext:%d\n", bPOPCNT, bBMI2);
 }
 
 #else
-
-#include <cpuid.h>
-static void cpuid(int32_t out[4], int32_t x){
-    __cpuid_count(x, 0, out[0], out[1], out[2], out[3]);
-}
-static uint64_t xgetbv(unsigned int index){
-    uint32_t eax, edx;
-    __asm__ __volatile__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(index));
-    return ((uint64_t)edx << 32) | eax;
-}
-
 void engine::GetSystemInfo()
 {
-    char CPUBrandString[0x40];
-
-    int32_t CPUInfo[4];
-
-    cpuid(CPUInfo, 0);
-    unsigned    nIds, nExIds, i;
-    bool    bPOPCNT = false;
-    bool    bBMI2 = false;
-
-    cpuid(CPUInfo, 0);
-    nIds = CPUInfo[0];
-    // Get the information associated with each valid Id
-    for (i = 0; i <= nIds; ++i)
-    {
-        cpuid(CPUInfo, i);
-        // Interpret CPU feature information.
-        if (i == 1)
-        {
-            bPOPCNT = (CPUInfo[2] & 0x800000) || false;
-        }
-
-        if (i == 7)
-        {
-            // this is not in the MSVC2012 example but may be useful later
-            bBMI2 = (CPUInfo[1] & 0x100) || false;
-        }
-    }
-
-    en.maxBt = bBMI2 ? BT_PEXT : BT_MAGIC;
-
-    printf("popcount: %d  bmi2: %d\n", bPOPCNT, bBMI2);
-
-    // Calling __cpuid with 0x80000000 as the InfoType argument
-    // gets the number of valid extended IDs.
-    cpuid(CPUInfo, 0x80000000);
-    nExIds = CPUInfo[0];
-    memset(CPUBrandString, 0, sizeof(CPUBrandString));
-
-    for (i = 0x80000000; i <= nExIds; ++i)
-    {
-        cpuid(CPUInfo, i);
-
-        // Interpret CPU brand string and cache information.
-        if (i == 0x80000002)
-            memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
-        else if (i == 0x80000003)
-            memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
-        else if (i == 0x80000004)
-            memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
-    }
-
-
-
-    maxBt = BT_PEXT;
-    system = CPUBrandString;
-
+    system = "Some non-x86-64 platform.";
+    en.maxBt = BT_MAGIC;
 }
 
 #endif
+
 
 // Measure performance for MAGIC Bitboard and PEXT Bitboard and select the faster one
 // Useful to disable PEXT for AMD Zen architecture
@@ -161,7 +108,8 @@ void engine::BenchCpu()
 {
     U64 score_magic = 0;
     U64 start = getTime();
-    for (int j = 0; j < 100000000; j++)
+    Bt = maxBt;
+    for (int j = 0; j < 10000000; j++)
         score_magic += rootposition.rookAttacks<BT_MAGIC>(j, j % 64);
     U64 time_magic = getTime() - start;
     printf("Bench(magic): %4.6f  score=%llx\n", time_magic / (double)frequency, score_magic);
@@ -169,7 +117,7 @@ void engine::BenchCpu()
     {
         U64 score_pext = 0;
         start = getTime();
-        for (int j = 0; j < 100000000; j++)
+        for (int j = 0; j < 10000000; j++)
             score_pext += rootposition.rookAttacks<BT_PEXT>(j, j % 64);
         U64 time_pext = getTime() - start;
         printf("Bench(pext):  %4.6f  score=%llx\n", time_pext / (double)frequency, score_pext);
@@ -177,8 +125,8 @@ void engine::BenchCpu()
         {
             printf("Alarm! Magic und PEXT nicht konsistent!\n");
         }
-        if (time_pext > time_magic)
-            // PEXT slower than expected (probably AMD Zen); switch to magic bitboards
+        if (time_pext > time_magic * 2)
+            // PEXT slower than expected even with an error margin of * 2 (probably AMD Zen); switch to magic bitboards
             Bt = BT_MAGIC;
     }
 }

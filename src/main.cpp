@@ -904,6 +904,7 @@ int main(int argc, char* argv[])
     string logfile;
     string comparefile;
     string genepd;
+    int bt;
 #ifdef EVALTUNE
     string pgnconvertfile;
     string fentuningfiles;
@@ -938,6 +939,7 @@ int main(int argc, char* argv[])
         { "-flags", "1=skip easy (0 sec.) compares; 2=break 5 seconds after first find; 4=break after compare time is over; 8=eval only (use with -enginetest)", &flags, 1, "0" },
         { "-option", "Set UCI option by commandline", NULL, 3, NULL },
         { "-generate", "Generates epd file with n (default 1000) random endgame positions of the given type; format: egstr/n ", &genepd, 2, "" },
+        { "-bitboardtype", "-1=best possible 0=Magic 1=PEXT", &bt, 1, "-1" },
 #ifdef STACKDEBUG
         { "-assertfile", "output assert info to file", &en.assertfile, 2, "" },
 #endif
@@ -1024,7 +1026,14 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (verbose) printf("%s (Build %s)\n UCI compatible chess engine by %s\n", en.name, BUILD, en.author);
+    if (bt >= 0 && bt <= en.maxBt)
+        // Set the desired bitboard mode
+        en.Bt = (BitboardType)bt;
+    else
+        // Set fastest bitboard mode
+        en.BenchCpu();
+
+    if (verbose) printf("%s (Build %s  %s)\n UCI compatible chess engine by %s\n", en.name, BUILD, BtName[en.Bt].c_str(), en.author);
 
     if (perfmaxdepth)
     {

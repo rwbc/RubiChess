@@ -106,7 +106,9 @@
 #define freealigned64(x) _aligned_free(x)
 
 #else //_WIN32
+#if defined(_M_X64) || defined(__amd64)
 #include <x86intrin.h>
+#endif
 #define myassert(expression, pos, num, ...) (void)(0)
 #define sprintf_s sprintf
 void Sleep(long x);
@@ -667,7 +669,7 @@ extern transposition tp;
 //
 
 enum BitboardType { BT_MAGIC, BT_PEXT };
-
+const string BtName[] = { "Magic BB", "PEXT BB" };
 
 #define STARTFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
