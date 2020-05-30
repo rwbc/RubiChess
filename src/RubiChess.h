@@ -106,7 +106,7 @@
 #define freealigned64(x) _aligned_free(x)
 
 #else //_WIN32
-
+#include <x86intrin.h>
 #define myassert(expression, pos, num, ...) (void)(0)
 #define sprintf_s sprintf
 void Sleep(long x);

@@ -23,7 +23,6 @@
 void engine::GetSystemInfo()
 {
     // shameless copy from MSDN example explaining __cpuid
-    char CPUString[0x20];
     char CPUBrandString[0x40];
     int CPUInfo[4] = { -1 };
     //int nCacheLineSize = 0; // Maybe usefull for TT sizing
@@ -35,10 +34,6 @@ void engine::GetSystemInfo()
 
     __cpuid(CPUInfo, 0);
     nIds = CPUInfo[0];
-    memset(CPUString, 0, sizeof(CPUString));
-    *((int*)CPUString) = CPUInfo[1];
-    *((int*)(CPUString + 4)) = CPUInfo[3];
-    *((int*)(CPUString + 8)) = CPUInfo[2];
 
     // Get the information associated with each valid Id
     for (i = 0; i <= nIds; ++i)
@@ -88,10 +83,74 @@ void engine::GetSystemInfo()
 
 #else
 
-string engine::GetSystemInfo()
+#include <cpuid.h>
+static void cpuid(int32_t out[4], int32_t x){
+    __cpuid_count(x, 0, out[0], out[1], out[2], out[3]);
+}
+static uint64_t xgetbv(unsigned int index){
+    uint32_t eax, edx;
+    __asm__ __volatile__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(index));
+    return ((uint64_t)edx << 32) | eax;
+}
+
+void engine::GetSystemInfo()
 {
-    maxBt = BT_MAGIC;
-    system = "some Linux box";
+    char CPUBrandString[0x40];
+
+    int32_t CPUInfo[4];
+
+    cpuid(CPUInfo, 0);
+    unsigned    nIds, nExIds, i;
+    bool    bPOPCNT = false;
+    bool    bBMI2 = false;
+
+    cpuid(CPUInfo, 0);
+    nIds = CPUInfo[0];
+    // Get the information associated with each valid Id
+    for (i = 0; i <= nIds; ++i)
+    {
+        cpuid(CPUInfo, i);
+        // Interpret CPU feature information.
+        if (i == 1)
+        {
+            bPOPCNT = (CPUInfo[2] & 0x800000) || false;
+        }
+
+        if (i == 7)
+        {
+            // this is not in the MSVC2012 example but may be useful later
+            bBMI2 = (CPUInfo[1] & 0x100) || false;
+        }
+    }
+
+    en.maxBt = bBMI2 ? BT_PEXT : BT_MAGIC;
+
+    printf("popcount: %d  bmi2: %d\n", bPOPCNT, bBMI2);
+
+    // Calling __cpuid with 0x80000000 as the InfoType argument
+    // gets the number of valid extended IDs.
+    cpuid(CPUInfo, 0x80000000);
+    nExIds = CPUInfo[0];
+    memset(CPUBrandString, 0, sizeof(CPUBrandString));
+
+    for (i = 0x80000000; i <= nExIds; ++i)
+    {
+        cpuid(CPUInfo, i);
+
+        // Interpret CPU brand string and cache information.
+        if (i == 0x80000002)
+            memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
+        else if (i == 0x80000003)
+            memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
+        else if (i == 0x80000004)
+            memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
+    }
+
+
+
+    maxBt = BT_PEXT;
+    system = CPUBrandString;
+
 }
 
 #endif

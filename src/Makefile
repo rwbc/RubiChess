@@ -25,7 +25,7 @@ ifeq ($(COMP),clang)
 	CXX=clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(shell uname -m),x86_64)
-		ARCHFLAGS=-msse3 -mpopcnt
+		ARCHFLAGS=-msse3 -mpopcnt -mbmi2
 	endif
 	ifeq ($(shell uname -m),armv7l)
 		ARCHFLAGS=-march=armv7-a
@@ -86,20 +86,20 @@ gcc-profile-use:
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-generate=$(EXE).clangprof-raw -flto' EXTRALDFLAGS=' -fprofile-instr-generate=$(EXE).clangprof-raw' $(EXE)
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-generate=$(EXE2).clangprof-raw -flto' EXTRALDFLAGS=' -fprofile-instr-generate=$(EXE2).clangprof-raw' $(EXE2)
+	#$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-generate=$(EXE2).clangprof-raw -flto' EXTRALDFLAGS=' -fprofile-instr-generate=$(EXE2).clangprof-raw' $(EXE2)
 
 clang-profile-use:
 	llvm-profdata merge -output=$(EXE).profdata $(EXE).clangprof-raw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-use=$(EXE).profdata -flto' EXTRALDFLAGS='-fprofile-instr-use=$(EXE).profdata' $(EXE)
-	llvm-profdata merge -output=$(EXE2).profdata $(EXE).clangprof-raw
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-use=$(EXE2).profdata -flto' EXTRALDFLAGS='-fprofile-instr-use=$(EXE2).profdata' $(EXE2)
+	#llvm-profdata merge -output=$(EXE2).profdata $(EXE).clangprof-raw
+	#$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRACXXFLAGS='-fprofile-instr-use=$(EXE2).profdata -flto' EXTRALDFLAGS='-fprofile-instr-use=$(EXE2).profdata' $(EXE2)
 
 profile-build: clean
 	@echo "Building instrumented executable ..."
 	$(MAKE) $(profile_make)
 	@echo "Running benchmark for pgo-build ..."
 	$(PGOBENCH1) > /dev/null
-	$(PGOBENCH2) > /dev/null
+	#$(PGOBENCH2) > /dev/null
 	@echo "Building optimized executable ..."
 	$(MAKE) objclean
 	$(MAKE) $(profile_use)
