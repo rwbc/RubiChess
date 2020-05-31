@@ -41,8 +41,8 @@ EXE = RubiChess
 EXE2 = RubiChess-oldcpu
 EXEDESC = -D PROCDESC=\"Popcnt\"
 EXE2DESC = -D PROCDESC=\"Oldcpu\"
-PGOBENCH1 = ./$(EXE) -bench
-PGOBENCH2 = ./$(EXE2) -bench
+PGOBENCH1 = ./$(EXE) -profile
+PGOBENCH2 = ./$(EXE2) -profile
 PROFDIR1 = OPT
 PROFDIR2 = NOPOCNT
 

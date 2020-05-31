@@ -222,7 +222,7 @@ static void perftest(bool dotests, int maxdepth)
     };
 
     int i = 0;
-    printf("\n\nPerft results for %s (Build %s)\n", en.name, BUILD);
+    printf("\n\nPerft results for %s (Build %s)\n", en.name().c_str(), BUILD);
     printf("System: %s\n", en.system.c_str());
     printf("Depth = %d    %8s  Hash-/Mirror-Tests %s\n", maxdepth, en.chess960 ? "Chess960" : "", dotests ? "enabled" : "disabled");
     printf("========================================================================\n");
@@ -287,7 +287,7 @@ const string solvedstr[] = { "-", "+", "o" };
 
 static void benchTableHeader(FILE* out)
 {
-        fprintf(out, "\n\nBenchmark results for %s (Build %s):\n", en.name, BUILD);
+        fprintf(out, "\n\nBenchmark results for %s (Build %s):\n", en.name().c_str(), BUILD);
         fprintf(out, "System: %s\n", en.system.c_str());
         fprintf(out, "=============================================================================================================\n");
 }
@@ -896,6 +896,7 @@ int main(int argc, char* argv[])
     bool verbose;
     bool benchmark;
     bool openbench;
+    bool profile;
     int depth;
     bool dotests;
     bool enginetest;
@@ -926,6 +927,7 @@ int main(int argc, char* argv[])
         { "-verbose", "Show the parameterlist and actuel values.", &verbose, 0, NULL },
         { "-bench", "Do benchmark test for some positions.", &benchmark, 0, NULL },
         { "bench", "Do benchmark with OpenBench compatible output.", &openbench, 0, NULL },
+        { "-profile", "Run bench with fixed depth and for all Bitboard types to generate profiling data.", &profile, 0, NULL },
         { "-depth", "Depth for benchmark (0 for per-position-default)", &depth, 1, "0" },
         { "-perft", "Do performance and move generator testing.", &perfmaxdepth, 1, "0" },
         { "-dotests","test the hash function and value for positions and mirror (use with -perft)", &dotests, 0, NULL },
@@ -1033,7 +1035,7 @@ int main(int argc, char* argv[])
         // Set fastest bitboard mode
         en.BenchCpu();
 
-    if (verbose) printf("%s (Build %s  %s)\n UCI compatible chess engine by %s\n", en.name, BUILD, BtName[en.Bt].c_str(), en.author);
+    if (verbose) printf("%s (Build %s)\n UCI compatible chess engine by %s\n", en.name().c_str(), BUILD, en.author);
 
     if (perfmaxdepth)
     {
@@ -1043,6 +1045,15 @@ int main(int argc, char* argv[])
     {
         // benchmark mode
         doBenchmark(depth, epdfile, maxtime, startnum, openbench);
+    }
+    else if (profile)
+    {
+        // profiling mode
+        for (int i = 0; i <= en.maxBt; i++)
+        {
+            en.Bt = (BitboardType)i;
+            doBenchmark(16, "", 0, 0, false);
+        }
     } else if (enginetest)
     {
 #ifdef _WIN32

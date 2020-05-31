@@ -174,7 +174,8 @@ inline int pullMsb(unsigned long long *x) {
     *x ^= (1ULL << i);
     return i;
 }
-#define POPCOUNT(x) (int)(__popcnt64(x))
+//#define POPCOUNT(x) (int)(__popcnt64(x))
+#define POPCOUNT(x) (int)(mypopcount(x))
 #else
 #define GETLSB(i,x) (i = __builtin_ctzll(x))
 inline int pullLsb(unsigned long long *x) {
@@ -1020,6 +1021,22 @@ extern SMagic mRookTbl[64];
 extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
 extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 
+inline U64 mypopcount(U64 x)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+    return __popcnt64(x);
+#else
+    U64 res;
+
+    asm("popcntq %1, %0;"
+        : "=r" (res)
+        :"r" (x)
+    );
+
+    return res;
+#endif
+}
+
 inline U64 mypext(U64 m, U64 i)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -1307,7 +1324,6 @@ class engine
 public:
     engine();
     ~engine();
-    const char* name = ENGINEVER;
     const char* author = "Andreas Matthies";
     bool isWhite;
     U64 tbhits;
@@ -1353,6 +1369,9 @@ public:
     int t2stop = 0;     // immediate stop
     bool bStopCount;
 #endif
+    const string name() {
+        return ENGINEVER  " (" + BtName[Bt] + ")";
+    }
     GuiToken parse(vector<string>*, string ss);
     void send(const char* format, ...);
     void communicate(string inputstring);

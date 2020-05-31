@@ -2645,7 +2645,7 @@ void engine::communicate(string inputstring)
                 }
                 break;
             case UCI:
-                send("id name %s\n", name);
+                send("id name %s\n", name().c_str());
                 send("id author %s\n", author);
                 ucioptions.Print();
                 send("uciok\n", author);
