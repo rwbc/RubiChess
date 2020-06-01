@@ -48,12 +48,12 @@ static void prt_str(char *str, int color, chessposition *pos)
     int i;
 
     for (pt = KING; pt >= PAWN; pt--)
-        for (i = POPCOUNT(pos->piece00[(pt << 1) | color]); i > 0; i--)
+        for (i = pos->POPCOUNT<BT_LEGACY>(pos->piece00[(pt << 1) | color]); i > 0; i--)
             *str++ = pchr[6 - pt];
     *str++ = 'v';
     color ^= S2MMASK;
     for (pt = KING; pt >= PAWN; pt--)
-        for (i = POPCOUNT(pos->piece00[(pt << 1) | color]); i > 0; i--)
+        for (i = pos->POPCOUNT<BT_LEGACY>(pos->piece00[(pt << 1) | color]); i > 0; i--)
             *str++ = pchr[6 - pt];
     *str++ = 0;
 }
@@ -71,11 +71,11 @@ static uint64 calc_key(int mirror, chessposition *pos)
 
 
     for (pt = PAWN; pt <= KING; pt++)
-        for (i = POPCOUNT(pos->piece00[(pt << 1) | color]); i > 0; i--)
+        for (i = pos->POPCOUNT<BT_LEGACY>(pos->piece00[(pt << 1) | color]); i > 0; i--)
             key ^= zb.boardtable[((i - 1) << 4) | (pt << 1)];
     color ^= S2MMASK;
     for (pt = PAWN; pt <= KING; pt++)
-        for (i = POPCOUNT(pos->piece00[(pt << 1) | color]); i > 0; i--)
+        for (i = pos->POPCOUNT<BT_LEGACY>(pos->piece00[(pt << 1) | color]); i > 0; i--)
             key ^= zb.boardtable[((i - 1) << 4) | (pt << 1) | 1];
 
     return key;
@@ -810,8 +810,8 @@ template <BitboardType Bt> int root_probe_wdl(chessposition *pos)
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template int root_probe_wdl<BT_MAGIC>(chessposition *);
-template int root_probe_dtz<BT_MAGIC>(chessposition *);
+template int root_probe_wdl<BT_LEGACY>(chessposition *);
+template int root_probe_dtz<BT_LEGACY>(chessposition *);
 template int probe_wdl<BT_MAGIC>(int *success, chessposition *pos);
 template int probe_wdl<BT_PEXT>(int *success, chessposition *pos);
 

@@ -65,7 +65,7 @@ void engine::GetSystemInfo()
         }
     }
 
-    en.maxBt = bBMI2 ? BT_PEXT : BT_MAGIC;
+    en.maxBt = bPOPCNT ? (bBMI2 ? BT_PEXT : BT_MAGIC) : BT_LEGACY;
 
     // Calling __cpuid with 0x80000000 as the InfoType argument
     // gets the number of valid extended IDs.
@@ -106,29 +106,43 @@ void engine::GetSystemInfo()
 // Useful to disable PEXT for AMD Zen architecture
 void engine::BenchCpu()
 {
+    Bt = maxBt;
+    slowPEXT = false;
+
+    if (maxBt < BT_PEXT)
+        // No need for slider attack bench
+        return;
+
+    // Measure time for 10 million magic slider attacks
     U64 score_magic = 0;
     U64 start = getTime();
-    Bt = maxBt;
-    for (int j = 0; j < 10000000; j++)
+    for (int j = 0; j < 5000000; j++)
+    {
         score_magic += rootposition.rookAttacks<BT_MAGIC>(j, j % 64);
+        score_magic += rootposition.bishopAttacks<BT_MAGIC>(j, j % 64);
+    }
     U64 time_magic = getTime() - start;
     printf("Bench(magic): %4.6f  score=%llx\n", time_magic / (double)frequency, score_magic);
-    if (maxBt >= BT_PEXT)
+
+    // Measure time for 10 million slider attacks using PEXT
+    U64 score_pext = 0;
+    start = getTime();
+    for (int j = 0; j < 5000000; j++)
     {
-        U64 score_pext = 0;
-        start = getTime();
-        for (int j = 0; j < 10000000; j++)
-            score_pext += rootposition.rookAttacks<BT_PEXT>(j, j % 64);
-        U64 time_pext = getTime() - start;
-        printf("Bench(pext):  %4.6f  score=%llx\n", time_pext / (double)frequency, score_pext);
-        if (score_magic != score_pext)
-        {
-            printf("Alarm! Magic und PEXT nicht konsistent!\n");
-        }
-        if (time_pext > time_magic * 2)
-            // PEXT slower than expected even with an error margin of * 2 (probably AMD Zen); switch to magic bitboards
-            Bt = BT_MAGIC;
+        score_pext += rootposition.rookAttacks<BT_PEXT>(j, j % 64);
+        score_pext += rootposition.bishopAttacks<BT_PEXT>(j, j % 64);
     }
+    U64 time_pext = getTime() - start;
+    printf("Bench(pext):  %4.6f  score=%llx\n", time_pext / (double)frequency, score_pext);
+
+    if (score_magic != score_pext)
+    {
+        printf("Alarm! Magic und PEXT nicht konsistent!\n");
+    }
+
+    if ((slowPEXT = (time_pext > time_magic * 2)))
+        // PEXT slower than expected even with an error margin of * 2 (probably AMD Zen); switch to magic bitboards
+        Bt = BT_MAGIC;
 }
 
 
@@ -321,7 +335,7 @@ string AlgebraicFromShort(string s, chessposition *pos)
     PieceType promotion = BLANKTYPE;
     chessmovelist ml;
     pos->prepareStack();
-    ml.length = pos->CreateMovelist<ALL, BT_MAGIC>(&ml.move[0]);
+    ml.length = pos->CreateMovelist<ALL, BT_LEGACY>(&ml.move[0]);
     PieceType pt = PAWN;
     int to = 0xc0, from = 0xc0;
     int i = (int)s.size() - 1;
@@ -379,7 +393,7 @@ string AlgebraicFromShort(string s, chessposition *pos)
             && ((to & 0x40) || ((to & 0x07) == (GETTO(ml.move[i].code) & 0x07))))
         {
             // test if the move is legal; otherwise we need to search further
-            if (pos->playMove<BT_MAGIC>(&ml.move[i]))
+            if (pos->playMove<BT_LEGACY>(&ml.move[i]))
             {
                 pos->unplayMove(&ml.move[i]);
                 retval = ml.move[i].toString();

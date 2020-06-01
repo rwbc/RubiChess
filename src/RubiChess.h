@@ -175,7 +175,7 @@ inline int pullMsb(unsigned long long *x) {
     return i;
 }
 //#define POPCOUNT(x) (int)(__popcnt64(x))
-#define POPCOUNT(x) (int)(mypopcount(x))
+//#define POPCOUNT(x) (int)(mypopcount(x))
 #else
 #define GETLSB(i,x) (i = __builtin_ctzll(x))
 inline int pullLsb(unsigned long long *x) {
@@ -669,8 +669,8 @@ extern transposition tp;
 // board stuff
 //
 
-enum BitboardType { BT_MAGIC, BT_PEXT };
-const string BtName[] = { "Magic BB", "PEXT BB" };
+enum BitboardType { BT_LEGACY, BT_MAGIC, BT_PEXT };
+const string BtName[] = { "Legacy", "Popcount", "BMI2" };
 
 #define STARTFEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -1179,7 +1179,8 @@ public:
     string toFen();
     bool applyMove(string s);
     void print(ostream* os = &cout);
-    int phase();
+    template <BitboardType Bt> long long perft(int depth, bool dotests);
+    template <BitboardType Bt> int phase();
     template <BitboardType Bt> U64 movesTo(PieceCode pc, int from);
     template <PieceType Pt, BitboardType Bt> U64 pieceMovesTo(int from);
     template <BitboardType Bt> bool isAttacked(int index, int me);
@@ -1210,12 +1211,12 @@ public:
     template <BitboardType Bt> bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
     template <BitboardType Bt> uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
     int getpsqval(bool showDetails = false);  // only for eval trace and mirror test
-    template <EvalType Et, int Me> int getGeneralEval(positioneval *pe);
+    template <EvalType Et, int Me, BitboardType Bt> int getGeneralEval(positioneval *pe);
     template <EvalType Et, PieceType Pt, int Me, BitboardType Bt> int getPieceEval(positioneval *pe);
     template <EvalType Et, int Me, BitboardType Bt> int getLateEval(positioneval *pe);
-    template <EvalType Et, int Me> void getPawnAndKingEval(pawnhashentry *entry);
+    template <EvalType Et, int Me, BitboardType Bt> void getPawnAndKingEval(pawnhashentry *entry);
     template <EvalType Et, BitboardType Bt> int getEval();
-    void getScaling(Materialhashentry *mhentry);
+    template <BitboardType Bt> void getScaling(Materialhashentry *mhentry);
     int getComplexity(int eval, pawnhashentry *phentry, Materialhashentry *mhentry);
 
     template <RootsearchType RT, BitboardType Bt> int rootsearch(int alpha, int beta, int depth);
@@ -1230,17 +1231,25 @@ public:
     inline void CheckForImmediateStop();
 
     template<BitboardType Bt> inline U64 rookAttacks(U64 occ, int from) {
-        if (Bt == BT_MAGIC)
+        if (Bt < BT_PEXT)
             return MAGICROOKATTACKS(occ, from);
-        if (Bt == BT_PEXT)
+        else
             return PEXTROOKATTACKS(occ, from);
     }
     template<BitboardType Bt> inline U64 bishopAttacks(U64 occ, int from) {
-        if (Bt == BT_MAGIC) 
+        if (Bt < BT_PEXT) 
             return MAGICBISHOPATTACKS(occ, from);
-        if (Bt == BT_PEXT) 
+        else 
             return PEXTBISHOPATTACKS(occ, from);
     }
+    template<BitboardType Bt > inline int POPCOUNT(U64 x) {
+        if (Bt == BT_LEGACY)
+            return (int)__popcnt64(x);
+        else
+            return (int)mypopcount(x);
+    }
+
+
 
 #ifdef SDEBUG
     bool triggerDebug(chessmove* nextmove);
@@ -1359,6 +1368,7 @@ public:
     ucioptions_t ucioptions;
     BitboardType maxBt;
     BitboardType Bt;
+    bool slowPEXT;
 
     string system;
 #ifdef STACKDEBUG
@@ -1370,7 +1380,7 @@ public:
     bool bStopCount;
 #endif
     const string name() {
-        return ENGINEVER  " (" + BtName[Bt] + ")";
+        return ENGINEVER  " (" + BtName[Bt] + (slowPEXT ? ", PEXT disabled" : "") + ")";
     }
     GuiToken parse(vector<string>*, string ss);
     void send(const char* format, ...);
@@ -1382,7 +1392,6 @@ public:
     void HitPonder() { pondersearch = HITPONDER; }
     bool testPonderHit() { return (pondersearch == HITPONDER); }
     void resetPonder() { pondersearch = NO; }
-    long long perft(int depth, bool dotests);
     void prepareThreads();
     void resetStats();
     void GetSystemInfo();
@@ -1437,7 +1446,7 @@ public:
     ~searchthread();
 };
 
-void searchStart();
+template <BitboardType Bt> void searchStart();
 void searchWaitStop(bool forceStop = true);
 void searchinit();
 void resetEndTime(int constantRootMoves, bool complete = true);

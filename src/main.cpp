@@ -64,7 +64,7 @@ void generateEpd(string egn)
                 }
             }
         // Check if position is legal
-        bool isLegal = !pos->isAttackedBy<OCCUPIED, BT_MAGIC>(pos->kingpos[pos->state ^ S2MMASK], pos->state)
+        bool isLegal = !pos->isAttackedBy<OCCUPIED, BT_LEGACY>(pos->kingpos[pos->state ^ S2MMASK], pos->state)
             && squareDistance[pos->kingpos[0]][pos->kingpos[1]] > 0;
         if (isLegal)
         {
@@ -75,8 +75,8 @@ void generateEpd(string egn)
             pos->movestack[0].movecode = -1;  // Avoid fast eval after null move
             pos->rootheight = 0;
             pos->lastnullmove = -1;
-            int staticeval = S2MSIGN(pos->state & S2MMASK) * pos->getEval<NOTRACE, BT_MAGIC>();
-            int quietval = pos->getQuiescence<BT_MAGIC>(SCOREBLACKWINS, SCOREWHITEWINS, 0);
+            int staticeval = S2MSIGN(pos->state & S2MMASK) * pos->getEval<NOTRACE, BT_LEGACY>();
+            int quietval = pos->getQuiescence<BT_LEGACY>(SCOREBLACKWINS, SCOREWHITEWINS, 0);
             bool isQuiet = (abs(staticeval - quietval) < 100);
             if (isQuiet)
             {
@@ -88,73 +88,8 @@ void generateEpd(string egn)
 }
 
 
-long long engine::perft(int depth, bool dotests)
-{
-    long long retval = 0;
-    chessposition *rootpos = en.sthread[0].pos;
 
-    if (dotests)
-    {
-        if (rootpos->hash != zb.getHash(rootpos))
-        {
-            printf("Alarm! Wrong Hash! %llu\n", zb.getHash(rootpos));
-            rootpos->print();
-        }
-        if (rootpos->pawnhash && rootpos->pawnhash != zb.getPawnHash(rootpos))
-        {
-            printf("Alarm! Wrong Pawn Hash! %llu\n", zb.getPawnHash(rootpos));
-            rootpos->print();
-        }
-        if (rootpos->materialhash != zb.getMaterialHash(rootpos))
-        {
-            printf("Alarm! Wrong Material Hash! %llu\n", zb.getMaterialHash(rootpos));
-            rootpos->print();
-        }
-        int val1 = rootpos->getEval<NOTRACE, BT_MAGIC>();
-        int psq1 = rootpos->getpsqval();
-        if (rootpos->psqval != psq1)
-        {
-            printf("PSQ-Test  :error  incremental:%d  recalculated:%d\n", rootpos->psqval, psq1);
-            rootpos->print();
-        }
-        rootpos->mirror();
-        int val2 = rootpos->getEval<NOTRACE, BT_MAGIC>();
-        rootpos->mirror();
-        int val3 = rootpos->getEval<NOTRACE, BT_MAGIC>();
-        if (!(val1 == val3 && val1 == -val2))
-        {
-            printf("Mirrortest  :error  (%d / %d / %d)\n", val1, val2, val3);
-            rootpos->print();
-            rootpos->mirror();
-            rootpos->print();
-            rootpos->mirror();
-            rootpos->print();
-        }
-    }
-
-    if (depth == 0)
-        return 1;
-
-    chessmovelist movelist;
-    if (rootpos->isCheckbb)
-        movelist.length = rootpos->CreateEvasionMovelist<BT_MAGIC>(&movelist.move[0]);
-    else
-        movelist.length = rootpos->CreateMovelist<ALL, BT_MAGIC>(&movelist.move[0]);
-
-    rootpos->prepareStack();
-
-    for (int i = 0; i < movelist.length; i++)
-    {
-        if (rootpos->playMove<BT_MAGIC>(&movelist.move[i]))
-        {
-            retval += perft(depth - 1, dotests);
-            rootpos->unplayMove(&movelist.move[i]);
-        }
-    }
-    return retval;
-}
-
-static void perftest(bool dotests, int maxdepth)
+void perftest(bool dotests, int maxdepth)
 {
     struct perftestresultstruct
     {
@@ -239,15 +174,27 @@ static void perftest(bool dotests, int maxdepth)
     else
         ptr = perftestresults;
 
+    chessposition *pos = en.sthread[0].pos;
     while (ptr[i].fen != "")
     {
-        en.sthread[0].pos->getFromFen(ptr[i].fen.c_str());
+        pos->getFromFen(ptr[i].fen.c_str());
         int j = 0;
         while (ptr[i].nodes[j] > 0 && j <= maxdepth)
         {
             long long starttime = getTime();
 
-            U64 result = en.perft(j, dotests);
+            U64 result;
+            switch (en.Bt)
+            {
+            case BT_PEXT:
+                result = pos->perft<BT_PEXT>(j, dotests);
+                break;
+            case BT_MAGIC:
+                result = pos->perft<BT_MAGIC>(j, dotests);
+                break;
+            default:
+                result = pos->perft<BT_LEGACY>(j, dotests);
+            }
             totalresult += result;
 
             perftlasttime = getTime();

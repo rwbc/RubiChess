@@ -349,7 +349,7 @@ template <BitboardType Bt> int chessposition::alphabeta(int alpha, int beta, int
     // the root position is a TB position but only WDL tables are available.
     // In that case the search should not probe before a pawn move or capture
     // is made.
-    if (POPCOUNT(occupied00[0] | occupied00[1]) <= useTb && halfmovescounter == 0)
+    if (POPCOUNT<Bt>(occupied00[0] | occupied00[1]) <= useTb && halfmovescounter == 0)
     {
         int success;
         int v = probe_wdl<Bt>(&success, this);
@@ -1403,7 +1403,7 @@ void resetEndTime(int constantRootMoves, bool complete)
         en.endtime2 = en.starttime + min(max(0, timetouse - overhead * en.movestogo), f2 * timetouse / (en.movestogo + 1) / 10) * en.frequency / 1000;
     }
     else if (timetouse) {
-        int ph = en.sthread[0].pos->phase();
+        int ph = en.sthread[0].pos->ph;
         if (timeinc)
         {
             // sudden death with increment; split the remaining time in (256-phase) timeslots
@@ -1448,7 +1448,7 @@ void startSearchTime(bool complete = true)
 }
 
 
-void searchStart()
+template <BitboardType Bt> void searchStart()
 {
     startSearchTime();
 
@@ -1460,22 +1460,13 @@ void searchStart()
 
     if (en.MultiPV == 1 && !en.ponder)
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            if (en.Bt == BT_PEXT)
-                en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch, BT_PEXT>, &en.sthread[tnum]);
-            else
-                en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch, BT_MAGIC>, &en.sthread[tnum]);
+            en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch, Bt>, &en.sthread[tnum]);
     else if (en.ponder)
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            if (en.Bt == BT_PEXT)
-                en.sthread[tnum].thr = thread(&search_gen1<PonderSearch, BT_PEXT>, &en.sthread[tnum]);
-            else
-                en.sthread[tnum].thr = thread(&search_gen1<PonderSearch, BT_MAGIC>, &en.sthread[tnum]);
+            en.sthread[tnum].thr = thread(&search_gen1<PonderSearch, Bt>, &en.sthread[tnum]);
     else
         for (int tnum = 0; tnum < en.Threads; tnum++)
-            if (en.Bt == BT_PEXT)
-                en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch, BT_PEXT>, &en.sthread[tnum]);
-            else
-                en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch, BT_MAGIC>, &en.sthread[tnum]);
+            en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch, Bt>, &en.sthread[tnum]);
 }
 
 
@@ -1602,4 +1593,7 @@ void search_statistics()
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template int chessposition::getQuiescence<BT_MAGIC>(int alpha, int beta, int depth);
+template int chessposition::getQuiescence<BT_LEGACY>(int alpha, int beta, int depth);
+template void searchStart<BT_LEGACY>();
+template void searchStart<BT_MAGIC>();
+template void searchStart<BT_PEXT>();

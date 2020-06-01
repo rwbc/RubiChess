@@ -484,8 +484,8 @@ int chessposition::getFromFen(const char* sFen)
         catch (...) {}
     }
 
-    isCheckbb = isAttackedBy<OCCUPIED, BT_MAGIC>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
-    updatePins<BT_MAGIC>();
+    isCheckbb = isAttackedBy<OCCUPIED, BT_LEGACY>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
+    updatePins<BT_LEGACY>();
 
     hash = zb.getHash(this);
     pawnhash = zb.getPawnHash(this);
@@ -496,6 +496,70 @@ int chessposition::getFromFen(const char* sFen)
     return 0;
 }
 
+
+template <BitboardType Bt> long long chessposition::perft(int depth, bool dotests)
+{
+    long long retval = 0;
+    if (dotests)
+    {
+        if (hash != zb.getHash(this))
+        {
+            printf("Alarm! Wrong Hash! %llu\n", zb.getHash(this));
+            print();
+        }
+        if (pawnhash && pawnhash != zb.getPawnHash(this))
+        {
+            printf("Alarm! Wrong Pawn Hash! %llu\n", zb.getPawnHash(this));
+            print();
+        }
+        if (materialhash != zb.getMaterialHash(this))
+        {
+            printf("Alarm! Wrong Material Hash! %llu\n", zb.getMaterialHash(this));
+            print();
+        }
+        int val1 = getEval<NOTRACE, Bt>();
+        int psq1 = getpsqval();
+        if (psqval != psq1)
+        {
+            printf("PSQ-Test  :error  incremental:%d  recalculated:%d\n", psqval, psq1);
+            print();
+        }
+        mirror();
+        int val2 = getEval<NOTRACE, Bt>();
+        mirror();
+        int val3 = getEval<NOTRACE, Bt>();
+        if (!(val1 == val3 && val1 == -val2))
+        {
+            printf("Mirrortest  :error  (%d / %d / %d)\n", val1, val2, val3);
+            print();
+            mirror();
+            print();
+            mirror();
+            print();
+        }
+    }
+
+    if (depth == 0)
+        return 1;
+
+    chessmovelist movelist;
+    if (isCheckbb)
+        movelist.length = CreateEvasionMovelist<Bt>(&movelist.move[0]);
+    else
+        movelist.length = CreateMovelist<ALL, Bt>(&movelist.move[0]);
+
+    prepareStack();
+
+    for (int i = 0; i < movelist.length; i++)
+    {
+        if (playMove<Bt>(&movelist.move[i]))
+        {
+            retval += perft<Bt>(depth - 1, dotests);
+            unplayMove(&movelist.move[i]);
+        }
+    }
+    return retval;
+}
 
 
 bool chessposition::applyMove(string s)
@@ -517,11 +581,11 @@ bool chessposition::applyMove(string s)
         to = to > from ? to + 1 : to - 2;
 
     chessmove m = chessmove(from, to, promotion, BLANK, BLANK);
-    m.code = shortMove2FullMove<BT_MAGIC>((uint16_t)m.code);
+    m.code = shortMove2FullMove<BT_LEGACY>((uint16_t)m.code);
 
     prepareStack();
 
-    if (playMove<BT_MAGIC>(&m))
+    if (playMove<BT_LEGACY>(&m))
     {
         if (halfmovescounter == 0)
         {
@@ -568,7 +632,7 @@ void chessposition::getRootMoves()
 {
     chessmovelist movelist;
     prepareStack();
-    movelist.length = CreateMovelist<ALL, BT_MAGIC>(&movelist.move[0]);
+    movelist.length = CreateMovelist<ALL, BT_LEGACY>(&movelist.move[0]);
     evaluateMoves<ALL>(&movelist, NULL);
 
     int bestval = SCOREBLACKWINS;
@@ -584,7 +648,7 @@ void chessposition::getRootMoves()
     excludemovestack[0] = 0; // FIXME: Not very nice; is it worth to do do singular testing in root search?
     for (int i = 0; i < movelist.length; i++)
     {
-        if (playMove<BT_MAGIC>(&movelist.move[i]))
+        if (playMove<BT_LEGACY>(&movelist.move[i]))
         {
             if (tthit)
             {
@@ -600,10 +664,10 @@ void chessposition::getRootMoves()
                     // Test if this move makes a 3fold possible for opponent
                     prepareStack();
                     chessmovelist followupmovelist;
-                    followupmovelist.length = CreateMovelist<ALL, BT_MAGIC>(&followupmovelist.move[0]);
+                    followupmovelist.length = CreateMovelist<ALL, BT_LEGACY>(&followupmovelist.move[0]);
                     for (int j = 0; j < followupmovelist.length; j++)
                     {
-                        if (playMove<BT_MAGIC>(&followupmovelist.move[j]))
+                        if (playMove<BT_LEGACY>(&followupmovelist.move[j]))
                         {
                             if (testRepetiton() >= 2)
                                 // 3fold for opponent is possible
@@ -635,9 +699,9 @@ void chessposition::tbFilterRootMoves()
     useTb = min(TBlargest, en.SyzygyProbeLimit);
     tbPosition = 0;
     useRootmoveScore = 0;
-    if (POPCOUNT(occupied00[0] | occupied00[1]) <= useTb)
+    if (POPCOUNT<BT_LEGACY>(occupied00[0] | occupied00[1]) <= useTb)
     {
-        if ((tbPosition = root_probe_dtz<BT_MAGIC>(this))) {
+        if ((tbPosition = root_probe_dtz<BT_LEGACY>(this))) {
             // The current root position is in the tablebases.
             // RootMoves now contains only moves that preserve the draw or win.
 
@@ -647,7 +711,7 @@ void chessposition::tbFilterRootMoves()
         else // If DTZ tables are missing, use WDL tables as a fallback
         {
             // Filter out moves that do not preserve a draw or win
-            tbPosition = root_probe_wdl<BT_MAGIC>(this);
+            tbPosition = root_probe_wdl<BT_LEGACY>(this);
             // useRootmoveScore is set within root_probe_wdl
         }
 
@@ -744,7 +808,7 @@ void chessposition::mirror()
     kingpos[0] = kingpos[1] ^ RANKMASK;
     kingpos[1] = kingpostemp ^ RANKMASK;
     materialhash = zb.getMaterialHash(this);
-    updatePins<BT_MAGIC>();
+    updatePins<BT_LEGACY>();
 }
 
 
@@ -1009,7 +1073,7 @@ void chessposition::print(ostream* os)
         *os << "\n";
     }
     chessmovelist pseudolegalmoves;
-    pseudolegalmoves.length = CreateMovelist<ALL, BT_MAGIC>(&pseudolegalmoves.move[0]);
+    pseudolegalmoves.length = CreateMovelist<ALL, BT_LEGACY>(&pseudolegalmoves.move[0]);
     *os << "\nFEN: " + toFen() + "\n";
     *os << "State: " << std::hex << state << "\n";
     *os << "EPT: " + to_string(ept) + "\n";
@@ -1018,9 +1082,9 @@ void chessposition::print(ostream* os)
     *os << "Hash: 0x" << hex << hash << " (should be 0x" << hex << zb.getHash(this) << ")\n";
     *os << "Pawn Hash: 0x" << hex << pawnhash << " (should be 0x" << hex << zb.getPawnHash(this) << ")\n";
     *os << "Material Hash: 0x" << hex << materialhash << " (should be 0x" << hex << zb.getMaterialHash(this) << ")\n";
-    *os << "Value: " + to_string(getEval<NOTRACE, BT_MAGIC>()) + "\n";
+    *os << "Value: " + to_string(getEval<NOTRACE, BT_LEGACY>()) + "\n";
     *os << "Repetitions: " + to_string(testRepetiton()) + "\n";
-    *os << "Phase: " + to_string(phase()) + "\n";
+    *os << "Phase: " + to_string(phase<BT_LEGACY>()) + "\n";
     *os << "Pseudo-legal Moves: " + pseudolegalmoves.toStringWithValue() + "\n";
 #if defined(STACKDEBUG) || defined(SDEBUG)
     *os << "Moves in current search: " + movesOnStack() + "\n";
@@ -1602,7 +1666,7 @@ template <BitboardType Bt> bool chessposition::playMove(chessmove *cm)
             if ((capture >> 1) == PAWN)
                 pawnhash ^= zb.boardtable[(to << 4) | capture];
             BitboardClear(to, capture);
-            materialhash ^= zb.boardtable[(POPCOUNT(piece00[capture]) << 4) | capture];
+            materialhash ^= zb.boardtable[(POPCOUNT<Bt>(piece00[capture]) << 4) | capture];
             halfmovescounter = 0;
         }
 
@@ -1614,8 +1678,8 @@ template <BitboardType Bt> bool chessposition::playMove(chessmove *cm)
         else {
             mailbox[to] = promote;
             BitboardClear(from, pfrom);
-            materialhash ^= zb.boardtable[(POPCOUNT(piece00[pfrom]) << 4) | pfrom];
-            materialhash ^= zb.boardtable[(POPCOUNT(piece00[promote]) << 4) | promote];
+            materialhash ^= zb.boardtable[(POPCOUNT<Bt>(piece00[pfrom]) << 4) | pfrom];
+            materialhash ^= zb.boardtable[(POPCOUNT<Bt>(piece00[promote]) << 4) | promote];
             BitboardSet(to, promote);
             // just double the hash-switch for target to make the pawn vanish
             pawnhash ^= zb.boardtable[(to << 4) | mailbox[to]];
@@ -1641,7 +1705,7 @@ template <BitboardType Bt> bool chessposition::playMove(chessmove *cm)
                 mailbox[epfield] = BLANK;
                 hash ^= zb.boardtable[(epfield << 4) | (pfrom ^ S2MMASK)];
                 pawnhash ^= zb.boardtable[(epfield << 4) | (pfrom ^ S2MMASK)];
-                materialhash ^= zb.boardtable[(POPCOUNT(piece00[(pfrom ^ S2MMASK)]) << 4) | (pfrom ^ S2MMASK)];
+                materialhash ^= zb.boardtable[(POPCOUNT<Bt>(piece00[(pfrom ^ S2MMASK)]) << 4) | (pfrom ^ S2MMASK)]; //FIXME: popcount here?? Looks strange
             }
         }
 
@@ -1986,7 +2050,7 @@ template <BitboardType Bt> inline int chessposition::CreateEvasionMovelist(chess
         }
     }
 
-    if (POPCOUNT(isCheckbb) == 1)
+    if (POPCOUNT<Bt>(isCheckbb) == 1)
     {
         // only one attacker => capture or block the attacker is a possible evasion
         int attacker;
@@ -2160,10 +2224,10 @@ template <BitboardType Bt> U64 chessposition::attackedByBB(int index, U64 occ)
 }
 
 
-int chessposition::phase()
+template <BitboardType Bt> int chessposition::phase()
 {
     // minor ~ 10-11    rook ~ 21-22    queen ~ 42-43
-    int p = max(0, (24 - POPCOUNT(piece00[4]) - POPCOUNT(piece00[5]) - POPCOUNT(piece00[6]) - POPCOUNT(piece00[7]) - (POPCOUNT(piece00[8]) << 1) - (POPCOUNT(piece00[9]) << 1) - (POPCOUNT(piece00[10]) << 2) - (POPCOUNT(piece00[11]) << 2)));
+    int p = max(0, (24 - POPCOUNT<Bt>(piece00[4]) - POPCOUNT<Bt>(piece00[5]) - POPCOUNT<Bt>(piece00[6]) - POPCOUNT<Bt>(piece00[7]) - (POPCOUNT<Bt>(piece00[8]) << 1) - (POPCOUNT<Bt>(piece00[9]) << 1) - (POPCOUNT<Bt>(piece00[10]) << 2) - (POPCOUNT<Bt>(piece00[11]) << 2)));
     return (p * 255 + 12) / 24;
 }
 
@@ -2808,7 +2872,18 @@ void engine::communicate(string inputstring)
                 }
                 isWhite = (sthread[0].pos->w2m());
                 stopLevel = ENGINERUN;
-                searchStart();
+                switch (Bt)
+                {
+                case BT_PEXT:
+                    searchStart<BT_PEXT>();
+                    break;
+                case BT_MAGIC:
+                    searchStart<BT_MAGIC>();
+                    break;
+                default:
+                    searchStart<BT_LEGACY>();
+                }
+
                 if (inputstring != "")
                 {
                     // bench mode; wait for end of search
@@ -2825,14 +2900,25 @@ void engine::communicate(string inputstring)
                 break;
             case EVAL:
                 en.evaldetails = (ci < cs && commandargs[ci] == "detail");
-                sthread[0].pos->getEval<TRACE, BT_MAGIC>();
+                sthread[0].pos->getEval<TRACE, BT_LEGACY>();
                 break;
             case PERFT:
                 if (ci < cs) {
                     maxdepth = stoi(commandargs[ci++]);
-                    cout << perft(maxdepth, false) << "\n";
+                    long long  iPerft;
+                    switch (Bt)
+                    { 
+                    case BT_MAGIC:
+                        iPerft = rootposition.perft<BT_MAGIC>(maxdepth, false);
+                        break;
+                    case BT_PEXT:
+                        iPerft = rootposition.perft<BT_PEXT>(maxdepth, false);
+                        break;
+                    default:
+                        iPerft = rootposition.perft<BT_LEGACY>(maxdepth, false);
+                    }
+                    cout << iPerft << "\n";
                 }
-                break;
                 break;
             default:
                 break;
@@ -2973,17 +3059,26 @@ engine en;
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
-template U64 chessposition::isAttackedBy<OCCUPIED, BT_MAGIC>(int index, int col);
-template int chessposition::CreateEvasionMovelist<BT_MAGIC>(chessmove*);
+template U64 chessposition::isAttackedBy<OCCUPIED, BT_LEGACY>(int index, int col);
+template int chessposition::CreateEvasionMovelist<BT_LEGACY>(chessmove*);
+template int chessposition::CreateMovelist<ALL, BT_MAGIC>(chessmove* mstart);
 template int chessposition::CreateMovelist<ALL, BT_PEXT>(chessmove* mstart);
+template chessmove* MoveSelector::next<BT_LEGACY>();
 template chessmove* MoveSelector::next<BT_MAGIC>();
 template chessmove* MoveSelector::next<BT_PEXT>();
+template void MoveSelector::SetPreferredMoves<BT_LEGACY>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
 template void MoveSelector::SetPreferredMoves<BT_MAGIC>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
 template void MoveSelector::SetPreferredMoves<BT_PEXT>(chessposition *p, uint16_t hshm, uint32_t kllm1, uint32_t kllm2, uint32_t counter, int excludemove);
+template bool chessposition::moveGivesCheck<BT_LEGACY>(uint32_t c);
 template bool chessposition::moveGivesCheck<BT_MAGIC>(uint32_t c);
 template bool chessposition::moveGivesCheck<BT_PEXT>(uint32_t c);
+template uint32_t chessposition::shortMove2FullMove<BT_LEGACY>(uint16_t c);
 template uint32_t chessposition::shortMove2FullMove<BT_MAGIC>(uint16_t c);
 template uint32_t chessposition::shortMove2FullMove<BT_PEXT>(uint16_t c);
+template U64 chessposition::pieceMovesTo<KNIGHT, BT_LEGACY>(int);
+template U64 chessposition::pieceMovesTo<BISHOP, BT_LEGACY>(int);
+template U64 chessposition::pieceMovesTo<ROOK, BT_LEGACY>(int);
+template U64 chessposition::pieceMovesTo<QUEEN, BT_LEGACY>(int);
 template U64 chessposition::pieceMovesTo<KNIGHT, BT_MAGIC>(int);
 template U64 chessposition::pieceMovesTo<BISHOP, BT_MAGIC>(int);
 template U64 chessposition::pieceMovesTo<ROOK, BT_MAGIC>(int);
@@ -2992,5 +3087,8 @@ template U64 chessposition::pieceMovesTo<KNIGHT, BT_PEXT>(int);
 template U64 chessposition::pieceMovesTo<BISHOP, BT_PEXT>(int);
 template U64 chessposition::pieceMovesTo<ROOK, BT_PEXT>(int);
 template U64 chessposition::pieceMovesTo<QUEEN, BT_PEXT>(int);
+template bool chessposition::playMove<BT_MAGIC>(chessmove *cm);
 template bool chessposition::playMove<BT_PEXT>(chessmove *cm);
-
+template int chessposition::phase<BT_LEGACY>();
+template int chessposition::phase<BT_MAGIC>();
+template int chessposition::phase<BT_PEXT>();
