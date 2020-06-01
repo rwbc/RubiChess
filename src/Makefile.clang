@@ -14,16 +14,11 @@ SOURCE=*.cpp
 OBJ=*.obj
 RELDIR=Release-clang
 EXE1=RubiChess
-EXE2=RubiChess-oldcpu
-EXEDESC=-D PROCDESC=\"Popcnt\"
-EXE2DESC=-D PROCDESC=\"Oldcpu\"
 PROFEXE1=$(EXE1)-Prof
-PROFEXE2=$(EXE2)-Prof
 PROFDATATOOLEXE=llvm-profdata
 
 CXXFLAGS=/GX /O2 /Oi /Ot /c -flto -fuse-ld=lld
-ARCHFLAGS=-msse3
-#-mpopcnt 
+#ARCHFLAGS=-msse3 -mpopcnt 
 LDFLAGS=/OPT:REF /OPT:ICF
 PROFLIB=$(LLVMInstallDir)\lib\clang\8.0.0\lib\windows\clang_rt.profile-x86_64.lib
 
@@ -33,35 +28,22 @@ $(RELDIR):
 	mkdir $(RELDIR)
 
 RubiChess: $(RELDIR)
-	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE) $(EXEDESC)
+	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE)
 	$(LD) $(LDFLAGS) /OUT:$(RELDIR)\$(EXE1).exe $(OBJ)
 
-RubiChess-oldcpu: $(RELDIR)
-	$(CXX) $(CXXFLAGS) $(SOURCE) $(EXE2DESC)
-	$(LD) $(LDFLAGS) /OUT:$(RELDIR)\$(EXE2).exe $(OBJ)
-
 profile-build: $(RELDIR)
-	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE) -fprofile-instr-generate=$(PROFEXE1).clangprof-raw $(EXEDESC)
+	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE) -fprofile-instr-generate=$(PROFEXE1).clangprof-raw
 	$(LD) $(LDFLAGS) /OUT:$(PROFEXE1).exe $(OBJ) $(PROFLIB)
 	$(PROFEXE1) -profile > nul
 	$(PROFDATATOOLEXE) merge -output=$(PROFEXE1).clangprof $(PROFEXE1).clangprof-raw
-	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE) -fprofile-instr-use=$(PROFEXE1).clangprof $(EXEDESC)
+	$(CXX) $(CXXFLAGS) $(ARCHFLAGS) $(SOURCE) -fprofile-instr-use=$(PROFEXE1).clangprof
 	$(LD) $(LDFLAGS) /OUT:$(RELDIR)\$(EXE1).exe $(OBJ)
-
-	$(CXX) $(CXXFLAGS) $(SOURCE) -fprofile-instr-generate=$(PROFEXE2).clangprof-raw $(EXE2DESC)
-	$(LD) $(LDFLAGS) /OUT:$(PROFEXE2).exe $(OBJ) $(PROFLIB)
-	$(PROFEXE2) -profile > nul
-	$(PROFDATATOOLEXE) merge -output=$(PROFEXE2).clangprof $(PROFEXE2).clangprof-raw
-	$(CXX) $(CXXFLAGS) $(SOURCE) -fprofile-instr-use=$(PROFEXE2).clangprof $(EXE2DESC)
-	$(LD) $(LDFLAGS) /OUT:$(RELDIR)\$(EXE2).exe $(OBJ)
 
 build: profile-build profile-clean
 
 profile-clean:
 	del $(PROFEXE1)*
-	del $(PROFEXE2)*
 	del *.obj
 
 clean: profile-clean
 	del $(RELDIR)\$(EXE1).exe
-	del $(RELDIR)\$(EXE2).exe

@@ -137,17 +137,14 @@ using namespace std;
 #endif
 #endif
 
-#ifndef PROCDESC
-#define PROCDESC "general"
-#endif
 #ifndef VERSTABLE
 #ifdef GITVER
-#define VERSION VERNUM "-dev " PROCDESC " " GITVER
+#define VERSION VERNUM "-dev " GITVER
 #else
-#define VERSION VERNUM "-dev " PROCDESC
+#define VERSION VERNUM "-dev"
 #endif
 #else
-#define VERSION VERNUM " " PROCDESC
+#define VERSION VERNUM
 #endif
 #define ENGINEVER "RubiChess " VERSION
 #ifdef GITID
@@ -174,8 +171,6 @@ inline int pullMsb(unsigned long long *x) {
     *x ^= (1ULL << i);
     return i;
 }
-//#define POPCOUNT(x) (int)(__popcnt64(x))
-//#define POPCOUNT(x) (int)(mypopcount(x))
 #else
 #define GETLSB(i,x) (i = __builtin_ctzll(x))
 inline int pullLsb(unsigned long long *x) {
@@ -189,7 +184,6 @@ inline int pullMsb(unsigned long long *x) {
     *x ^= (1ULL << i);
     return i;
 }
-#define POPCOUNT(x) __builtin_popcountll(x)
 #endif
 
 enum { WHITE, BLACK };
@@ -1024,7 +1018,7 @@ extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 inline U64 mypopcount(U64 x)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
-    return __popcnt64(x);
+    return (int)(__popcnt64(x));
 #else
     U64 res;
 
