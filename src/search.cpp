@@ -96,6 +96,16 @@ inline void chessposition::updateHistory(uint32_t code, int16_t **cmptr, int val
 }
 
 
+inline void chessposition::updateCaptureHistory(uint32_t code, int value)
+{
+    int pc = GETCAPTURE(code);
+    int to = GETCORRECTTO(code);
+    value = max(-256, min(256, value));
+    int delta = 32 * value - capturehistory[pc][to] * abs(value) / 256;
+    capturehistory[pc][to] += delta;
+}
+
+
 int chessposition::getQuiescence(int alpha, int beta, int depth)
 {
     int score;
@@ -523,6 +533,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     int legalMoves = 0;
     int quietsPlayed = 0;
     uint32_t quietMoves[MAXMOVELISTLENGTH];
+    int capturesPlayed = 0;
+    uint32_t captureMoves[MAXMOVELISTLENGTH];
     while ((m = ms.next()))
     {
         ms.legalmovenum++;
@@ -722,6 +734,14 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                     if (lastmove)
                         countermove[GETPIECE(lastmove)][GETCORRECTTO(lastmove)] = m->code;
                 }
+                else {
+                    updateCaptureHistory(m->code, depth * depth);
+                    for (int i = 0; i < capturesPlayed; i++)
+                    {
+                        uint32_t qm = captureMoves[i];
+                        updateCaptureHistory(qm, -(depth * depth));
+                    }
+                }
 
                 STATISTICSINC(moves_fail_high);
 
@@ -743,6 +763,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         if (!ISTACTICAL(m->code))
             quietMoves[quietsPlayed++] = m->code;
+        else
+            captureMoves[capturesPlayed++] = m->code;
     }
 
     if (legalMoves == 0)

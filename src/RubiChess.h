@@ -1140,6 +1140,7 @@ public:
 #endif
     // ...
     int16_t history[2][64][64];
+    int16_t capturehistory[14][64];
     int16_t counterhistory[14][64][14 * 64];
     uint32_t countermove[14][64];
     Materialhash mtrlhsh;
@@ -1187,6 +1188,7 @@ public:
     int alphabeta(int alpha, int beta, int depth);
     int getQuiescence(int alpha, int beta, int depth);
     void updateHistory(uint32_t code, int16_t **cmptr, int value);
+    void updateCaptureHistory(uint32_t code, int value);
     void getCmptr(int16_t **cmptr);
     void updatePvTable(uint32_t mc, bool recursive);
     void updateMultiPvTable(int pvindex, uint32_t mc);

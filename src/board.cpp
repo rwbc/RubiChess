@@ -504,7 +504,9 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
         if (Mt == CAPTURE || (Mt == ALL && GETCAPTURE(mc)))
         {
             PieceCode capture = GETCAPTURE(mc);
-            ml->move[i].value = (mvv[capture >> 1] | lva[piece >> 1]);
+            int to = GETTO(mc);
+            //ml->move[i].value = (mvv[capture >> 1] | lva[piece >> 1]);
+            ml->move[i].value = materialvalue[capture >> 1] * 2 + pos->capturehistory[capture][to];
         }
         if (Mt == QUIET || (Mt == ALL && !GETCAPTURE(mc)))
         {
@@ -2495,6 +2497,7 @@ void engine::resetStats()
     for (int i = 0; i < Threads; i++)
     {
         memset(sthread[i].pos.history, 0, sizeof(chessposition::history));
+        memset(sthread[i].pos.capturehistory, 0, sizeof(chessposition::capturehistory));
         memset(sthread[i].pos.counterhistory, 0, sizeof(chessposition::counterhistory));
         memset(sthread[i].pos.countermove, 0, sizeof(chessposition::countermove));
     }
