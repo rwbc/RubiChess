@@ -266,8 +266,10 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     // Reset pv
     pvtable[ply][0] = 0;
 
-    STATISTICSINC(ab_n);
-    STATISTICSADD(ab_pv, PVNode);
+    STATISTICSINC(ab_n[0]);
+    STATISTICSINC(ab_n[ply + 1]);
+    STATISTICSADD(ab_pv[0], PVNode);
+    STATISTICSADD(ab_pv[ply + 1], PVNode);
 
     // test for remis via repetition
     int rep = testRepetiton();
@@ -531,7 +533,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         SDEBUGDO(isDebugMove, pvmovenum[ply] = legalMoves + 1;);
         SDEBUGDO((isDebugPv && pvmovenum[ply] <= 0), pvmovenum[ply] = -(legalMoves + 1););
 #endif
-        STATISTICSINC(moves_n[(bool)ISTACTICAL(m->code)]);
+        STATISTICSINC(moves_n[(bool)ISTACTICAL(m->code)][0]);
+        STATISTICSINC(moves_n[(bool)ISTACTICAL(m->code)][ply]);
         // Leave out the move to test for singularity
         if ((m->code & 0xffff) == excludeMove)
             continue;
@@ -661,7 +664,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             continue;
         }
 
-        STATISTICSINC(moves_played[(bool)ISTACTICAL(m->code)]);
+        STATISTICSINC(moves_played[PVNode][(bool)ISTACTICAL(m->code)][0]);
+        STATISTICSINC(moves_played[PVNode][(bool)ISTACTICAL(m->code)][ply]);
 
         LegalMoves[ply] = ms.legalmovenum;
 
@@ -705,6 +709,14 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                 if (!ISTACTICAL(m->code))
                 {
                     updateHistory(m->code, ms.cmptr, depth * depth);
+                    if (depth > 12 && ply < LOWPLY)
+                    {
+                        int from = GETFROM(m->code);
+                        int bonus = (depth - 8) * (depth - 8);
+                        int delta = 32 * bonus - earlyhistory[ply][from][to] * abs(bonus) / 256;
+                        earlyhistory[ply][from][to] += delta;
+                    }
+
                     for (int i = 0; i < quietsPlayed; i++)
                     {
                         uint32_t qm = quietMoves[i];
@@ -791,6 +803,11 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
     // reset pv
     pvtable[0][0] = 0;
 
+    STATISTICSINC(ab_n[0]);
+    STATISTICSINC(ab_n[ply + 1]);
+    STATISTICSADD(ab_pv[0], 1);
+    STATISTICSADD(ab_pv[ply + 1], 1);
+
     if (isMultiPV)
     {
         lastmoveindex = 0;
@@ -846,8 +863,8 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
                 m->value = KILLERVAL2;
             else if (GETCAPTURE(m->code) != BLANK)
                 m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]);
-            else 
-                m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];
+            else
+                m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];// +earlyhistory[0][GETFROM(m->code)][GETCORRECTTO(m->code)];
         }
     }
 
@@ -875,6 +892,9 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         SDEBUGDO(pvmovenum[0] <= 0, pvmovenum[0] = -(i + 1););
 #endif
         playMove(m);
+
+        STATISTICSINC(moves_played[1][(bool)ISTACTICAL(m->code)][0]);
+        STATISTICSINC(moves_played[1][(bool)ISTACTICAL(m->code)][ply]);
 
 #ifndef SDEBUG
         if (en.moveoutput && !threadindex && (en.pondersearch != PONDERING || depth < MAXDEPTH - 1))
@@ -996,6 +1016,15 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
                 if (!ISTACTICAL(m->code))
                 {
                     updateHistory(m->code, ms.cmptr, depth * depth);
+                    if (depth > 12)
+                    {
+                        int from = GETFROM(m->code);
+                        int to = GETCORRECTTO(m->code);
+                        int bonus = (depth - 8) * (depth - 8);
+                        int delta = 32 * bonus - earlyhistory[0][from][to] * abs(bonus) / 256;
+                        earlyhistory[0][from][to] += delta;
+                    }
+
                     for (int q = 0; q < quietsPlayed - 1; q++)
                     {
                         uint32_t qm = quietMoves[q];
@@ -1536,7 +1565,7 @@ inline void chessposition::CheckForImmediateStop()
 #ifdef STATISTICS
 void search_statistics()
 {
-    U64 n, i1, i2, i3;
+    U64 n, i1, i2, i3, i30, i31;
     double f0, f1, f2, f3, f4, f5, f6, f7, f10, f11;
 
     printf("(ST)====Statistics====================================================================================================================================\n");
@@ -1556,8 +1585,8 @@ void search_statistics()
     printf("(ST) QSearch: %12lld   %%InCheck:  %5.2f   %%TT-Hits:  %5.2f   %%Std.Pat: %5.2f   %%DeltaPr: %5.2f   Mvs/Lp: %5.2f   %%DlPrM: %5.2f   %%FailHi: %5.2f\n", n, f0, f1, f2, f3, f4, f5, f6);
 
     // general aplhabeta statistics
-    n = statistics.ab_n;
-    f0 = 100.0 * statistics.ab_pv / (double)n;
+    n = statistics.ab_n[0];
+    f0 = 100.0 * statistics.ab_pv[0] / (double)n;
     f1 = 100.0 * statistics.ab_tt / (double)n;
     f2 = 100.0 * statistics.ab_tb / (double)n;
     f3 = 100.0 * statistics.ab_qs / (double)n;
@@ -1573,8 +1602,8 @@ void search_statistics()
     printf("(ST) Node pruning            %%Futility: %5.2f   %%NullMove: %5.2f   %%ProbeC.: %5.2f   %%MultiC.: %7.5f Total:  %5.2f\n", f0, f1, f2, f3, f4);
 
     // move statistics
-    i1 = statistics.moves_n[0]; // quiet moves
-    i2 = statistics.moves_n[1]; // tactical moves
+    i1 = statistics.moves_n[0][0]; // quiet moves
+    i2 = statistics.moves_n[1][0]; // tactical moves
     n = i1 + i2;
     f0 = 100.0 * i1 / (double)n;
     f1 = 100.0 * i2 / (double)n;
@@ -1582,10 +1611,25 @@ void search_statistics()
     f3 = 100.0 * statistics.moves_pruned_futility / (double)n;
     f4 = 100.0 * statistics.moves_pruned_badsee / (double)n;
     f5 = n / (double)statistics.moves_loop_n;
-    i3 = statistics.moves_played[0] + statistics.moves_played[1];
+    i30 = statistics.moves_played[0][0][0] + statistics.moves_played[0][1][0];  // moves in non-PVNodes
+    i31 = statistics.moves_played[1][0][0] + statistics.moves_played[1][1][0];  // moves in PVNodes
+    i3 = i30 + i31;
     f6 = 100.0 * statistics.moves_fail_high / (double)i3;
     f7 = 100.0 * statistics.moves_bad_hash / i2;
     printf("(ST) Moves:   %12lld   %%Quiet-M.: %5.2f   %%Tact.-M.: %5.2f   %%BadHshM: %5.2f   %%LMP-M.:  %5.2f   %%FutilM.: %5.2f   %%BadSEE: %5.2f  Mvs/Lp: %5.2f   %%FailHi: %5.2f\n", n, f0, f1, f7, f2, f3, f4, f5, f6);
+
+    // Per-Ply statistics
+    printf("(ST) Per-ply-stats:\n");
+    for (int i = 1; i < 20; i++)
+    {
+
+        f0 = statistics.moves_played[0][0][i] / (double)(statistics.ab_n[i] - statistics.ab_pv[i]);
+        f1 = statistics.moves_played[0][1][i] / (double)(statistics.ab_n[i] - statistics.ab_pv[i]);
+        f2 = statistics.moves_played[1][0][i] / (double)statistics.ab_pv[i];
+        f3 = statistics.moves_played[1][1][i] / (double)statistics.ab_pv[i];
+
+        printf("(ST)   ply: %2d  quiets-nonpv: %4.2f  tactics-nonpv: %4.2f  quiets-pv: %4.2f  tactics-pv: %4.2f\n", i, f0, f1, f2, f3);
+    }
 
     // late move reduction statistics
     U64 red_n = statistics.red_pi[0] + statistics.red_pi[1];

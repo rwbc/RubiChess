@@ -509,7 +509,8 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
         if (Mt == QUIET || (Mt == ALL && !GETCAPTURE(mc)))
         {
             int to = GETCORRECTTO(mc);
-            ml->move[i].value = pos->history[piece & S2MMASK][GETFROM(mc)][to];
+            int from = GETFROM(mc);
+            ml->move[i].value = pos->history[piece & S2MMASK][from][to];
             if (cmptr)
             {
                 for (int j = 0; j < CMPLIES && cmptr[j]; j++)
@@ -517,6 +518,8 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
                     ml->move[i].value += cmptr[j][piece * 64 + to];
                 }
             }
+            if (pos->ply < LOWPLY)
+                ;// ml->move[i].value += pos->earlyhistory[pos->ply][from][to];
 
         }
         if (GETPROMOTION(mc))
@@ -2495,6 +2498,7 @@ void engine::resetStats()
     for (int i = 0; i < Threads; i++)
     {
         memset(sthread[i].pos.history, 0, sizeof(chessposition::history));
+        memset(sthread[i].pos.earlyhistory, 0, sizeof(chessposition::earlyhistory));
         memset(sthread[i].pos.counterhistory, 0, sizeof(chessposition::counterhistory));
         memset(sthread[i].pos.countermove, 0, sizeof(chessposition::countermove));
     }

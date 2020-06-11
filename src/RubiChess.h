@@ -20,7 +20,7 @@
 #define VERNUM "1.8"
 //#define VERSTABLE
 
-#if 0
+#if 1
 #define STATISTICS
 #endif
 
@@ -734,6 +734,8 @@ const int castlekingto[4] = { 2, 6, 58, 62 };
 #define HASHBETA 0x02
 #define HASHEXACT 0x00
 
+#define LOWPLY 6
+
 #define MAXDEPTH 256
 #define NOSCORE SHRT_MIN
 #define SCOREBLACKWINS (SHRT_MIN + 3 + MAXDEPTH)
@@ -1140,6 +1142,7 @@ public:
 #endif
     // ...
     int16_t history[2][64][64];
+    int16_t earlyhistory[LOWPLY][64][64];
     int16_t counterhistory[14][64][14 * 64];
     uint32_t countermove[14][64];
     Materialhash mtrlhsh;
@@ -1413,8 +1416,8 @@ struct statistic {
     U64 qs_moves;               // moves done in qs
     U64 qs_moves_fh;            // qs moves that cause a fail high
 
-    U64 ab_n;                   // total calls to alphabeta
-    U64 ab_pv;                  // number of PV nodes
+    U64 ab_n[256];              // total calls to alphabeta per ply
+    U64 ab_pv[256];             // number of PV nodes
     U64 ab_tt;                  // alphabeta exit by tt hit
     U64 ab_draw_or_win;         // alphabeta returns draw or mate score
     U64 ab_qs;                  // alphabeta calls qsearch
@@ -1426,11 +1429,11 @@ struct statistic {
     U64 prune_multicut;         // nodes pruned by Multicut (detected by failed singular test)
 
     U64 moves_loop_n;           // counts how often the moves loop is entered
-    U64 moves_n[2];             // all moves in alphabeta move loop split into quites ans tactical
+    U64 moves_n[2][256];        // all moves in alphabeta move loop split into quites ans tactical and per ply
     U64 moves_pruned_lmp;       // moves pruned by lmp
     U64 moves_pruned_futility;  // moves pruned by futility
     U64 moves_pruned_badsee;    // moves pruned by bad see
-    U64 moves_played[2];        // moves that are played split into quites ans tactical
+    U64 moves_played[2][2][256];// moves that are played split into [PVNode][ISTACTICAL][ply]
     U64 moves_fail_high;        // moves that cause a fail high;
     U64 moves_bad_hash;         // hash moves that are repicked in the bad tactical stage
 
