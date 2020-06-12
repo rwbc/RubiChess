@@ -708,21 +708,23 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             {
                 if (!ISTACTICAL(m->code))
                 {
-                    updateHistory(m->code, ms.cmptr, depth * depth);
-                    if (depth > 12 && ply < LOWPLY)
+                    if (quietsPlayed || depth > 2)
                     {
-                        int from = GETFROM(m->code);
-                        int bonus = (depth - 8) * (depth - 8);
-                        int delta = 32 * bonus - earlyhistory[ply][from][to] * abs(bonus) / 256;
-                        earlyhistory[ply][from][to] += delta;
-                    }
+                        updateHistory(m->code, ms.cmptr, depth * depth);
+                        if (depth > 12 && ply < LOWPLY)
+                        {
+                            int from = GETFROM(m->code);
+                            int bonus = (depth - 8) * (depth - 8);
+                            int delta = 32 * bonus - earlyhistory[ply][from][to] * abs(bonus) / 256;
+                            earlyhistory[ply][from][to] += delta;
+                        }
 
-                    for (int i = 0; i < quietsPlayed; i++)
-                    {
-                        uint32_t qm = quietMoves[i];
-                        updateHistory(qm, ms.cmptr, -(depth * depth));
+                        for (int i = 0; i < quietsPlayed; i++)
+                        {
+                            uint32_t qm = quietMoves[i];
+                            updateHistory(qm, ms.cmptr, -(depth * depth));
+                        }
                     }
-
                     // Killermove
                     if (killer[ply][0] != m->code)
                     {
@@ -1015,20 +1017,23 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
                 // Killermove
                 if (!ISTACTICAL(m->code))
                 {
-                    updateHistory(m->code, ms.cmptr, depth * depth);
-                    if (depth > 12)
+                    if (quietsPlayed > 1 || depth > 2)
                     {
-                        int from = GETFROM(m->code);
-                        int to = GETCORRECTTO(m->code);
-                        int bonus = (depth - 8) * (depth - 8);
-                        int delta = 32 * bonus - earlyhistory[0][from][to] * abs(bonus) / 256;
-                        earlyhistory[0][from][to] += delta;
-                    }
+                        updateHistory(m->code, ms.cmptr, depth * depth);
+                        if (depth > 12)
+                        {
+                            int from = GETFROM(m->code);
+                            int to = GETCORRECTTO(m->code);
+                            int bonus = (depth - 8) * (depth - 8);
+                            int delta = 32 * bonus - earlyhistory[0][from][to] * abs(bonus) / 256;
+                            earlyhistory[0][from][to] += delta;
+                        }
 
-                    for (int q = 0; q < quietsPlayed - 1; q++)
-                    {
-                        uint32_t qm = quietMoves[q];
-                        updateHistory(qm, ms.cmptr, -(depth * depth));
+                        for (int q = 0; q < quietsPlayed - 1; q++)
+                        {
+                            uint32_t qm = quietMoves[q];
+                            updateHistory(qm, ms.cmptr, -(depth * depth));
+                        }
                     }
 
                     if (killer[0][0] != m->code)
