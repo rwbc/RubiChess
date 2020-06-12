@@ -519,7 +519,7 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
                 }
             }
             if (pos->ply < LOWPLY)
-                ;// ml->move[i].value += pos->earlyhistory[pos->ply][from][to];
+                ml->move[i].value += (pos->earlyhistory[pos->ply][from][to] << 2);
 
         }
         if (GETPROMOTION(mc))

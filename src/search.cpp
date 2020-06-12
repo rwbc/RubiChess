@@ -864,7 +864,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
             else if (GETCAPTURE(m->code) != BLANK)
                 m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]);
             else
-                m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];// +earlyhistory[0][GETFROM(m->code)][GETCORRECTTO(m->code)];
+                m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)] + (earlyhistory[0][GETFROM(m->code)][GETCORRECTTO(m->code)] << 2);
         }
     }
 
@@ -1423,6 +1423,11 @@ static void search_gen1(searchthread *thr)
         search_statistics();
 #endif
     }
+#if 0
+    // Shift the history for early plies by two to prepare for next move
+    memmove(&pos->earlyhistory[0][0][0], &pos->earlyhistory[2][0][0], sizeof(int16_t[LOWPLY - 2][64][64]));
+    memset(&pos->earlyhistory[LOWPLY - 2][0][0], 0, sizeof(int16_t[2][64][64]));
+#endif
 }
 
 
