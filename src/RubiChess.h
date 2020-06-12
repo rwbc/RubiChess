@@ -782,6 +782,7 @@ const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 2
 #define CASTLEFLAG    0x8000000
 #define GETFROM(x) (((x) & 0x0fc0) >> 6)
 #define GETTO(x) ((x) & 0x003f)
+#define GETFROMTO(x) ((x) & 0x0fff)
 #define GETCORRECTTO(x) (ISCASTLE(x) ? castlekingto[GETCASTLEINDEX(x)] : GETTO(x))
 #define GETEPT(x) (((x) & 0x03f00000) >> 20)
 #define ISEPCAPTURE(x) ((x) & EPCAPTUREFLAG)
@@ -1139,7 +1140,7 @@ public:
     string getGradientString();
 #endif
     // ...
-    int16_t history[2][64][64];
+    int16_t history[2][64 * 64];
     int16_t counterhistory[14][64][14 * 64];
     uint32_t countermove[14][64];
     Materialhash mtrlhsh;

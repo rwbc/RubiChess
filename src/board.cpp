@@ -508,13 +508,12 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
         }
         if (Mt == QUIET || (Mt == ALL && !GETCAPTURE(mc)))
         {
-            int to = GETCORRECTTO(mc);
-            ml->move[i].value = pos->history[piece & S2MMASK][GETFROM(mc)][to];
+            ml->move[i].value = pos->history[piece & S2MMASK][GETFROMTO(mc)];
             if (cmptr)
             {
                 for (int j = 0; j < CMPLIES && cmptr[j]; j++)
                 {
-                    ml->move[i].value += cmptr[j][piece * 64 + to];
+                    ml->move[i].value += cmptr[j][piece * 64 + GETTO(mc)];
                 }
             }
 
@@ -2128,7 +2127,7 @@ int chessposition::phase()
 bool chessposition::see(uint32_t move, int threshold)
 {
     int from = GETFROM(move);
-    int to = GETCORRECTTO(move);
+    int to = GETTO(move);
 
     int value = GETTACTICALVALUE(move) - threshold;
 
