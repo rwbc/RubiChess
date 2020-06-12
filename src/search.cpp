@@ -1423,11 +1423,6 @@ static void search_gen1(searchthread *thr)
         search_statistics();
 #endif
     }
-#if 0
-    // Shift the history for early plies by two to prepare for next move
-    memmove(&pos->earlyhistory[0][0][0], &pos->earlyhistory[2][0][0], sizeof(int16_t[LOWPLY - 2][64][64]));
-    memset(&pos->earlyhistory[LOWPLY - 2][0][0], 0, sizeof(int16_t[2][64][64]));
-#endif
 }
 
 

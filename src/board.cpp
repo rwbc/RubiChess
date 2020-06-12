@@ -2481,15 +2481,22 @@ void engine::prepareThreads()
 {
     for (int i = 0; i < Threads; i++)
     {
+        chessposition *pos = &sthread[i].pos;
         // copy new position to the threads copy but keep old history data
-        memcpy((void*)&sthread[i].pos, &rootposition, offsetof(chessposition, history));
-        sthread[i].pos.threadindex = i;
+        memcpy((void*)pos, &rootposition, offsetof(chessposition, history));
+#if 1
+        // Shift the history for early plies by two to prepare for next move
+        memmove(&pos->earlyhistory[0][0][0], &pos->earlyhistory[2][0][0], sizeof(int16_t[LOWPLY - 2][64][64]));
+        memset(&pos->earlyhistory[LOWPLY - 2][0][0], 0, sizeof(int16_t[2][64][64]));
+#endif
+
+        pos->threadindex = i;
         // early reset of variables that are important for bestmove selection
-        sthread[i].pos.bestmovescore[0] = NOSCORE;
-        sthread[i].pos.bestmove.code = 0;
-        sthread[i].pos.nodes = 0;
-        sthread[i].pos.nullmoveply = 0;
-        sthread[i].pos.nullmoveside = 0;
+        pos->bestmovescore[0] = NOSCORE;
+        pos->bestmove.code = 0;
+        pos->nodes = 0;
+        pos->nullmoveply = 0;
+        pos->nullmoveside = 0;
     }
 }
 
