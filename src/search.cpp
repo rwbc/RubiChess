@@ -704,13 +704,15 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             {
                 if (!ISTACTICAL(m->code))
                 {
-                    updateHistory(m->code, ms.cmptr, depth * depth);
-                    for (int i = 0; i < quietsPlayed; i++)
+                    if (quietsPlayed || depth > 3)
                     {
-                        uint32_t qm = quietMoves[i];
-                        updateHistory(qm, ms.cmptr, -(depth * depth));
+                        updateHistory(m->code, ms.cmptr, depth * depth);
+                        for (int i = 0; i < quietsPlayed; i++)
+                        {
+                            uint32_t qm = quietMoves[i];
+                            updateHistory(qm, ms.cmptr, -(depth * depth));
+                        }
                     }
-
                     // Killermove
                     if (killer[ply][0] != m->code)
                     {
@@ -992,16 +994,19 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
             if (score >= beta)
             {
                 SDEBUGDO(isDebugPv, pvaborttype[0] = isDebugMove ? PVA_BETACUT : debugMovePlayed ? PVA_NOTBESTMOVE : PVA_OMITTED;);
-                // Killermove
                 if (!ISTACTICAL(m->code))
                 {
-                    updateHistory(m->code, ms.cmptr, depth * depth);
-                    for (int q = 0; q < quietsPlayed - 1; q++)
+                    if (quietsPlayed > 1 || depth > 3)
                     {
-                        uint32_t qm = quietMoves[q];
-                        updateHistory(qm, ms.cmptr, -(depth * depth));
+                        updateHistory(m->code, ms.cmptr, depth * depth);
+                        for (int q = 0; q < quietsPlayed - 1; q++)
+                        {
+                            uint32_t qm = quietMoves[q];
+                            updateHistory(qm, ms.cmptr, -(depth * depth));
+                        }
                     }
 
+                    // Killermove
                     if (killer[0][0] != m->code)
                     {
                         killer[0][1] = killer[0][0];
