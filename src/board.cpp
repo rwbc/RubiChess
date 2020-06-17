@@ -2841,10 +2841,10 @@ void ucioptions_t::Set(string n, string v, bool force)
     ucioption_t *op = &(it->second);
     bool bChanged = false;
     smatch m;
+    int iVal;
     switch (op->type)
     {
     case ucispin:
-        int iVal;
         try {
             iVal = stoi(v);
             if ((bChanged = (iVal >= op->min && iVal <= op->max && (force || iVal != *(int*)(op->enginevar)))))
@@ -2884,6 +2884,17 @@ void ucioptions_t::Set(string n, string v, bool force)
         }
         break;
 #endif
+#ifdef SEARCHOPTIONS
+    case ucisearch:
+        int iVal;
+        try {
+            iVal = stoi(v);
+            if ((bChanged = ((iVal != *(int*)(op->enginevar)))))
+                *(int*)(op->enginevar) = iVal;
+        }
+        catch (...) {}
+        break;
+#endif
     default:
         break;
     }
@@ -2915,6 +2926,11 @@ void ucioptions_t::Print()
 #ifdef EVALOPTIONS
         case ucieval:
             cout << "string default " << op->def << "\n";
+            break;
+#endif
+#ifdef SEARCHOPTIONS
+        case ucisearch:
+            cout << "spin default " << op->def << "\n";
             break;
 #endif
         case ucicombo:

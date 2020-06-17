@@ -41,6 +41,10 @@
 #endif
 
 #if 0
+#define SEARCHOPTIONS
+#endif
+
+#if 0
 #define FINDMEMORYLEAKS
 #endif
 
@@ -1234,7 +1238,7 @@ const map<string, GuiToken> GuiCommandMap = {
 class engine;   //forward definition
 
 // order of ucioptiontypes is important for (not) setting default at registration
-enum ucioptiontype { ucicheck, ucispin, ucicombo, ucistring, ucibutton, ucieval };
+enum ucioptiontype { ucicheck, ucispin, ucicombo, ucistring, ucibutton, ucieval, ucisearch };
 
 struct ucioption_t
 {
@@ -1370,6 +1374,32 @@ extern engine en;
 //
 // search stuff
 //
+
+
+#ifdef SEARCHOPTIONS
+extern map<string, int*> searchparammap;
+class searchparam {
+public:
+    int v;
+    string name;
+    searchparam(string n, int i) {
+        name = n;
+        v = i;
+        searchparammap.insert(searchparammap.end(), pair<string, int*>(name, &v));
+    }
+    operator int() const { return v; }
+    searchparam operator=(const int other) { v = other; }
+};
+
+//typedef int searchparam;
+#define REGISTERPARAM(x,y) searchparam x(#x,y);
+
+#else
+typedef const int searchparam;
+#define REGISTERPARAM(x,y) searchparam x = y;
+#endif
+
+
 class searchthread
 {
 public:

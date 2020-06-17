@@ -22,7 +22,30 @@
 statistic statistics;
 #endif
 
-const int deltapruningmargin = 100;
+
+//
+// Define the search parameters here
+#ifdef SEARCHOPTIONS
+map<string, int*> searchparammap;
+#endif
+
+REGISTERPARAM(s_deltapruningmargin, 100)
+
+REGISTERPARAM(s_lmrnoimpbase, 1)
+REGISTERPARAM(s_lmrnoimpf, 60)
+REGISTERPARAM(s_lmrnoimpdepthf, 15)
+REGISTERPARAM(s_lmrnoimpmovef, 10)
+REGISTERPARAM(s_lmrimpbase, 0)
+REGISTERPARAM(s_lmrimpf, 43)
+REGISTERPARAM(s_lmrimpdepthf, 15)
+REGISTERPARAM(s_lmrimpmovef, 20)
+
+REGISTERPARAM(s_lmpnoimpbase, 25)
+REGISTERPARAM(s_lmpnoimpf, 7)
+REGISTERPARAM(s_lmpnoimpexp, 185)
+REGISTERPARAM(s_lmpimpbase, 40)
+REGISTERPARAM(s_lmpimpf, 13)
+REGISTERPARAM(s_lmpimpexp, 185)
 
 int reductiontable[2][MAXDEPTH][64];
 
@@ -33,24 +56,39 @@ int lmptable[2][MAXLMPDEPTH];
 static const int SkipSize[16] = { 1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1 };
 static const int SkipDepths[16] = { 1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2 };
 
-void searchinit()
+
+
+void searchtableinit()
 {
     for (int d = 0; d < MAXDEPTH; d++)
         for (int m = 0; m < 64; m++)
         {
             // reduction for not improving positions
-            reductiontable[0][d][m] = 1 + (int)round(log(d * 1.5) * log(m) * 0.60);
+            reductiontable[0][d][m] = s_lmrnoimpbase + (int)round(log(d * double(s_lmrnoimpdepthf) / 10.0) * log(m * double(s_lmrnoimpmovef) / 10.0) * double(s_lmrnoimpf) / 100.0);
             // reduction for improving positions
-            reductiontable[1][d][m] = (int)round(log(d * 1.5) * log(m * 2) * 0.43);
+            reductiontable[1][d][m] = s_lmrimpbase + (int)round(log(d * double(s_lmrimpdepthf) / 10.0) * log(m * double(s_lmrimpmovef) / 10.0) * double(s_lmrimpf) / 100.0);
         }
     for (int d = 0; d < MAXLMPDEPTH; d++)
     {
         // lmp for not improving positions
-        lmptable[0][d] = (int)(2.5 + 0.7 * round(pow(d, 1.85)));
+        lmptable[0][d] = (int)(double(s_lmpnoimpbase) / 10.0 + double(s_lmpnoimpf) / 10.0 * round(pow(d, double(s_lmpnoimpexp) / 100.0)));
         // lmp for improving positions
-        lmptable[1][d] = (int)(4.0 + 1.3 * round(pow(d, 1.85)));
+        lmptable[1][d] = (int)(double(s_lmpimpbase) / 10.0 + double(s_lmpimpf) / 10.0 * round(pow(d, double(s_lmpimpexp) / 100.0)));
     }
 }
+
+
+void searchinit()
+{
+#ifdef SEARCHOPTIONS
+    for (map<string, int*>::iterator it = searchparammap.begin(); it != searchparammap.end(); it++)
+    {
+        en.ucioptions.Register(it->second, it->first, ucisearch, to_string(*it->second), 0, 0, searchtableinit);
+    }
+#endif
+    searchtableinit();
+}
+
 
 void chessposition::getCmptr(int16_t **cmptr)
 {
@@ -182,7 +220,7 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
         }
 
         // Delta pruning
-        int bestExpectableScore = staticeval + deltapruningmargin + getBestPossibleCapture();
+        int bestExpectableScore = staticeval + s_deltapruningmargin + getBestPossibleCapture();
         if (bestExpectableScore < alpha)
         {
             STATISTICSINC(qs_delta);
@@ -203,7 +241,7 @@ int chessposition::getQuiescence(int alpha, int beta, int depth)
 
     while ((m = ms.next()))
     {
-        if (!myIsCheck && staticeval + materialvalue[GETCAPTURE(m->code) >> 1] + deltapruningmargin <= alpha)
+        if (!myIsCheck && staticeval + materialvalue[GETCAPTURE(m->code) >> 1] + s_deltapruningmargin <= alpha)
         {
             // Leave out capture that is delta-pruned
             STATISTICSINC(qs_move_delta);
