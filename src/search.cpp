@@ -47,6 +47,43 @@ REGISTERPARAM(s_lmpimpbase, 40)
 REGISTERPARAM(s_lmpimpf, 13)
 REGISTERPARAM(s_lmpimpexp, 185)
 
+REGISTERPARAM(s_razormargin, 250)
+REGISTERPARAM(s_razormarginperdepth, 50)
+
+REGISTERPARAM(s_futilitymaxdepth, 8)
+REGISTERPARAM(s_futilityreversemarginperdepth, 70)
+REGISTERPARAM(s_futilityreverseimproved, 20)
+REGISTERPARAM(s_futilitymargin, 100)
+REGISTERPARAM(s_futilitymarginperdepth, 80)
+
+REGISTERPARAM(s_nmpmindepth, 2)
+REGISTERPARAM(s_nmpminreduction, 4)
+REGISTERPARAM(s_nmpdepthratio, 6)
+REGISTERPARAM(s_nmpscoreratio, 150)
+REGISTERPARAM(s_nmpnonpv, 2)
+
+REGISTERPARAM(s_probcutmindepth, 5)
+REGISTERPARAM(s_probcutmargin, 100)
+REGISTERPARAM(s_probcutreduction, 4)
+
+REGISTERPARAM(s_iidmindepth, 3)
+REGISTERPARAM(s_iidreduction, 2)
+
+REGISTERPARAM(s_seeprunemaxdepth, 8)
+REGISTERPARAM(s_seeprunemarginperdepth, -20)
+REGISTERPARAM(s_seeprunemarginquietfactor, 4)
+
+REGISTERPARAM(s_singextmindepth, 8)
+REGISTERPARAM(s_singexthashred, 3)
+REGISTERPARAM(s_singextmarginperdepth, 2)
+
+REGISTERPARAM(s_redstatsratio, 5000)
+REGISTERPARAM(s_redoppmovenum, 15)
+
+REGISTERPARAM(s_cmpbadstat0, 0)
+REGISTERPARAM(s_cmpbadstat1, 0)
+
+
 int reductiontable[2][MAXDEPTH][64];
 
 #define MAXLMPDEPTH 9
@@ -446,7 +483,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     // Razoring
     if (!PVNode && !isCheckbb && depth <= 2)
     {
-        const int ralpha = alpha - 250 - depth * 50;
+        const int ralpha = alpha - s_razormargin - depth * s_razormarginperdepth;
         if (staticeval < ralpha)
         {
             int qscore;
@@ -467,24 +504,24 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
     // futility pruning
     bool futility = false;
-    if (depth <= 8)
+    if (depth <= s_futilitymaxdepth)
     {
         // reverse futility pruning
-        if (!isCheckbb && staticeval - depth * (70 - 20 * positionImproved) > beta)
+        if (!isCheckbb && staticeval - depth * (s_futilityreversemarginperdepth - s_futilityreverseimproved * positionImproved) > beta)
         {
             STATISTICSINC(prune_futility);
             SDEBUGDO(isDebugPv, pvabortval[ply] = staticeval; pvaborttype[ply] = PVA_REVFUTILITYPRUNED;);
             return staticeval;
         }
-        futility = (staticeval < alpha - (100 + 80 * depth));
+        futility = (staticeval < alpha - (s_futilitymargin + s_futilitymarginperdepth * depth));
     }
 
     // Nullmove pruning with verification like SF does it
     int bestknownscore = (hashscore != NOSCORE ? hashscore : staticeval);
-    if (!isCheckbb && depth >= 2 && bestknownscore >= beta && (ply  >= nullmoveply || ply % 2 != nullmoveside) && ph < 255)
+    if (!isCheckbb && depth >= s_nmpmindepth && bestknownscore >= beta && (ply  >= nullmoveply || ply % 2 != nullmoveside) && ph < 255)
     {
         playNullMove();
-        int R = 4 + (depth / 6) + (bestknownscore - beta) / 150 + !PVNode * 2;
+        int R = s_nmpminreduction + (depth / s_nmpdepthratio) + (bestknownscore - beta) / s_nmpscoreratio + !PVNode * s_nmpnonpv;
 
         score = -alphabeta(-beta, -beta + 1, depth - R);
         unplayNullMove();
@@ -513,9 +550,9 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     }
 
     // ProbCut
-    if (!PVNode && depth >= 5 && abs(beta) < SCOREWHITEWINS)
+    if (!PVNode && depth >= s_probcutmindepth && abs(beta) < SCOREWHITEWINS)
     {
-        int rbeta = min(SCOREWHITEWINS, beta + 100);
+        int rbeta = min(SCOREWHITEWINS, beta + s_probcutmargin);
         chessmovelist *movelist = new chessmovelist;
         movelist->length = CreateMovelist<TACTICAL>(this, &movelist->move[0]);
 
@@ -526,7 +563,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
             if (playMove(&movelist->move[i]))
             {
-                int probcutscore = -alphabeta(-rbeta, -rbeta + 1, depth - 4);
+                int probcutscore = -alphabeta(-rbeta, -rbeta + 1, depth - s_probcutreduction);
 
                 unplayMove(&movelist->move[i]);
 
@@ -544,12 +581,10 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     }
 
 
-    // Internal iterative deepening 
-    const int iidmin = 3;
-    const int iiddelta = 2;
-    if (PVNode && !hashmovecode && depth >= iidmin)
+    // Internal iterative deepening
+    if (PVNode && !hashmovecode && depth >= s_iidmindepth)
     {
-        alphabeta(alpha, beta, depth - iiddelta);
+        alphabeta(alpha, beta, depth - s_iidreduction);
         hashmovecode = tp.getMoveCode(newhash);
     }
 
@@ -610,7 +645,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         }
 
         // Prune moves with bad SEE
-        if (!isCheckbb && depth < 9 && bestscore > NOSCORE && ms.state >= QUIETSTATE && !see(m->code, -20 * depth * (ISTACTICAL(m->code) ? depth : 4)))
+        if (!isCheckbb && depth <= s_seeprunemaxdepth && bestscore > NOSCORE && ms.state >= QUIETSTATE
+            && !see(m->code, s_seeprunemarginperdepth * depth * (ISTACTICAL(m->code) ? depth : s_seeprunemarginquietfactor)))
         {
             STATISTICSINC(moves_pruned_badsee);
             SDEBUGDO(isDebugMove, pvaborttype[ply] = PVA_SEEPRUNED;);
@@ -622,13 +658,13 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         // Singular extension
         if ((m->code & 0xffff) == hashmovecode
-            && depth > 7
+            && depth >= s_singextmindepth
             && !excludeMove
-            && tp.probeHash(newhash, &hashscore, &staticeval, &hashmovecode, depth - 3, alpha, beta, ply)  // FIXME: maybe needs hashscore = FIXMATESCOREPROBE(hashscore, ply);
+            && tp.probeHash(newhash, &hashscore, &staticeval, &hashmovecode, depth - s_singexthashred, alpha, beta, ply)  // FIXME: maybe needs hashscore = FIXMATESCOREPROBE(hashscore, ply);
             && hashscore > alpha)
         {
             excludemovestack[mstop - 1] = hashmovecode;
-            int sBeta = max(hashscore - 2 * depth, SCOREBLACKWINS);
+            int sBeta = max(hashscore - s_singextmarginperdepth * depth, SCOREBLACKWINS);
             int redScore = alphabeta(sBeta - 1, sBeta, depth / 2);
             excludemovestack[mstop - 1] = 0;
 
@@ -659,13 +695,13 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
             // adjust reduction by stats value
-            reduction -= stats / 5000;
+            reduction -= stats / s_redstatsratio;
 
             // adjust reduction at PV nodes
             reduction -= PVNode;
 
             // adjust reduction with opponents move number
-            reduction -= (LegalMoves[ply] > 15);
+            reduction -= (LegalMoves[ply] > s_redoppmovenum);
 
             STATISTICSINC(red_pi[positionImproved]);
             STATISTICSADD(red_lmr[positionImproved], reductiontable[positionImproved][depth][min(63, legalMoves + 1)]);
@@ -686,8 +722,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         // Prune moves with bad counter move history
         if (!ISTACTICAL(m->code) && effectiveDepth < 4
-            && ms.cmptr[0] && ms.cmptr[0][pc * 64 + to] < 0
-            && ms.cmptr[1] && ms.cmptr[1][pc * 64 + to] < 0)
+            && ms.cmptr[0] && ms.cmptr[0][pc * 64 + to] < s_cmpbadstat0
+            && ms.cmptr[1] && ms.cmptr[1][pc * 64 + to] < s_cmpbadstat1)
         {
             SDEBUGDO(isDebugMove, pvaborttype[ply] = PVA_BADHISTORYPRUNED;);
             continue;
