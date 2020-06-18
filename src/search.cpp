@@ -77,6 +77,7 @@ REGISTERPARAM(s_singextmindepth, 8)
 REGISTERPARAM(s_singexthashred, 3)
 REGISTERPARAM(s_singextmarginperdepth, 2)
 
+REGISTERPARAM(s_redmindepth, 3)
 REGISTERPARAM(s_redstatsratio, 5000)
 REGISTERPARAM(s_redoppmovenum, 15)
 
@@ -690,7 +691,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         // Late move reduction
         int reduction = 0;
-        if (depth > 2 && !ISTACTICAL(m->code))
+        if (depth >= s_redmindepth && !ISTACTICAL(m->code))
         {
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
@@ -969,7 +970,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         int reduction = 0;
 
         // Late move reduction
-        if (depth > 2 && !ISTACTICAL(m->code))
+        if (depth >= s_redmindepth && !ISTACTICAL(m->code))
         {
             reduction = reductiontable[1][depth][min(63, i + 1)];
             STATISTICSINC(red_pi[1]);
