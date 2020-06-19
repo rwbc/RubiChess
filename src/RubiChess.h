@@ -40,7 +40,7 @@
 #define EVALOPTIONS
 #endif
 
-#if 0
+#if 1
 #define SEARCHOPTIONS
 #endif
 
@@ -1388,7 +1388,7 @@ public:
         searchparammap.insert(searchparammap.end(), pair<string, int*>(name, &v));
     }
     operator int() const { return v; }
-    searchparam operator=(const int other) { v = other; }
+    searchparam operator=(const int other) { v = other; return *this; }
 };
 
 //typedef int searchparam;

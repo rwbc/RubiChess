@@ -2894,7 +2894,6 @@ void ucioptions_t::Set(string n, string v, bool force)
 #endif
 #ifdef SEARCHOPTIONS
     case ucisearch:
-        int iVal;
         try {
             iVal = stoi(v);
             if ((bChanged = ((iVal != *(int*)(op->enginevar)))))
@@ -2938,7 +2937,7 @@ void ucioptions_t::Print()
 #endif
 #ifdef SEARCHOPTIONS
         case ucisearch:
-            cout << "spin default " << op->def << "min -99999 max 99999\n";
+            cout << "spin default " << op->def << " min -99999 max 99999\n";
             break;
 #endif
         case ucicombo:
