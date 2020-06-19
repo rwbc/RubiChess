@@ -26,63 +26,63 @@ statistic statistics;
 //
 // Define the search parameters here
 #ifdef SEARCHOPTIONS
-map<string, int*> searchparammap;
+map<string, searchparam_s> searchparammap;
 #endif
 
-REGISTERPARAM(s_deltapruningmargin, 100)
+REGISTERPARAM(s_deltapruningmargin, 100, 50, 150)
 
-REGISTERPARAM(s_lmrnoimpbase, 1)
-REGISTERPARAM(s_lmrnoimpf, 60)
-REGISTERPARAM(s_lmrnoimpdepthf, 15)
-REGISTERPARAM(s_lmrnoimpmovef, 10)
-REGISTERPARAM(s_lmrimpbase, 0)
-REGISTERPARAM(s_lmrimpf, 43)
-REGISTERPARAM(s_lmrimpdepthf, 15)
-REGISTERPARAM(s_lmrimpmovef, 20)
+REGISTERPARAM(s_lmrnoimpbase, 1, 0, 3)
+REGISTERPARAM(s_lmrnoimpf, 60, 0, 120)
+REGISTERPARAM(s_lmrnoimpdepthf, 15, 5, 50)
+REGISTERPARAM(s_lmrnoimpmovef, 10, 5, 50)
+REGISTERPARAM(s_lmrimpbase, 0, 0, 3)
+REGISTERPARAM(s_lmrimpf, 43, 0, 120)
+REGISTERPARAM(s_lmrimpdepthf, 15, 5, 50)
+REGISTERPARAM(s_lmrimpmovef, 20, 5, 50)
 
-REGISTERPARAM(s_lmpnoimpbase, 25)
-REGISTERPARAM(s_lmpnoimpf, 7)
-REGISTERPARAM(s_lmpnoimpexp, 185)
-REGISTERPARAM(s_lmpimpbase, 40)
-REGISTERPARAM(s_lmpimpf, 13)
-REGISTERPARAM(s_lmpimpexp, 185)
+REGISTERPARAM(s_lmpnoimpbase, 25, 0, 100)
+REGISTERPARAM(s_lmpnoimpf, 7, 0, 40)
+REGISTERPARAM(s_lmpnoimpexp, 185, 0, 500)
+REGISTERPARAM(s_lmpimpbase, 40, 0, 100)
+REGISTERPARAM(s_lmpimpf, 13, 0, 40)
+REGISTERPARAM(s_lmpimpexp, 185, 0, 500)
 
-REGISTERPARAM(s_razormargin, 250)
-REGISTERPARAM(s_razormarginperdepth, 50)
+REGISTERPARAM(s_razormargin, 250, 100, 500)
+REGISTERPARAM(s_razormarginperdepth, 50, 10, 100)
 
-REGISTERPARAM(s_futilitymaxdepth, 8)
-REGISTERPARAM(s_futilityreversemarginperdepth, 70)
-REGISTERPARAM(s_futilityreverseimproved, 20)
-REGISTERPARAM(s_futilitymargin, 100)
-REGISTERPARAM(s_futilitymarginperdepth, 80)
+REGISTERPARAM(s_futilitymaxdepth, 8, 2, 20)
+REGISTERPARAM(s_futilityreversemarginperdepth, 70, 0, 200)
+REGISTERPARAM(s_futilityreverseimproved, 20, 0, 100)
+REGISTERPARAM(s_futilitymargin, 100, 50, 300)
+REGISTERPARAM(s_futilitymarginperdepth, 80, 0, 200)
 
-REGISTERPARAM(s_nmpmindepth, 2)
-REGISTERPARAM(s_nmpminreduction, 4)
-REGISTERPARAM(s_nmpdepthratio, 6)
-REGISTERPARAM(s_nmpscoreratio, 150)
-REGISTERPARAM(s_nmpnonpv, 2)
+REGISTERPARAM(s_nmpmindepth, 2, 1, 10)
+REGISTERPARAM(s_nmpminreduction, 4, 2, 8)
+REGISTERPARAM(s_nmpdepthratio, 6, 1, 20)
+REGISTERPARAM(s_nmpscoreratio, 150, 50, 400)
+REGISTERPARAM(s_nmpnonpv, 2, 0, 5)
 
-REGISTERPARAM(s_probcutmindepth, 5)
-REGISTERPARAM(s_probcutmargin, 100)
-REGISTERPARAM(s_probcutreduction, 4)
+REGISTERPARAM(s_probcutmindepth, 5, 2, 10)
+REGISTERPARAM(s_probcutmargin, 100, 50, 300)
+REGISTERPARAM(s_probcutreduction, 4, 2, 8)
 
-REGISTERPARAM(s_iidmindepth, 3)
-REGISTERPARAM(s_iidreduction, 2)
+REGISTERPARAM(s_iidmindepth, 3, 1, 10)
+REGISTERPARAM(s_iidreduction, 2, 1, 10)
 
-REGISTERPARAM(s_seeprunemaxdepth, 8)
-REGISTERPARAM(s_seeprunemarginperdepth, -20)
-REGISTERPARAM(s_seeprunemarginquietfactor, 4)
+REGISTERPARAM(s_seeprunemaxdepth, 8, 2, 20)
+REGISTERPARAM(s_seeprunemarginperdepth, -20, -100, -1)
+REGISTERPARAM(s_seeprunemarginquietfactor, 4, 1, 20)
 
-REGISTERPARAM(s_singextmindepth, 8)
-REGISTERPARAM(s_singexthashred, 3)
-REGISTERPARAM(s_singextmarginperdepth, 2)
+REGISTERPARAM(s_singextmindepth, 8, 2, 20)
+REGISTERPARAM(s_singexthashred, 3, 1, 10)
+REGISTERPARAM(s_singextmarginperdepth, 2, 1, 10)
 
-REGISTERPARAM(s_redmindepth, 3)
-REGISTERPARAM(s_redstatsratio, 5000)
-REGISTERPARAM(s_redoppmovenum, 15)
+REGISTERPARAM(s_redmindepth, 3, 1, 10)
+REGISTERPARAM(s_redstatsratio, 5000, 1000, 16000)
+REGISTERPARAM(s_redoppmovenum, 15, 2, 40)
 
-REGISTERPARAM(s_cmpbadstat0, 0)
-REGISTERPARAM(s_cmpbadstat1, 0)
+REGISTERPARAM(s_cmpbadstat0, 0, -10000, 10000)
+REGISTERPARAM(s_cmpbadstat1, 0, -10000, 10000)
 
 
 int reductiontable[2][MAXDEPTH][64];
@@ -119,9 +119,9 @@ void searchtableinit()
 void searchinit()
 {
 #ifdef SEARCHOPTIONS
-    for (map<string, int*>::iterator it = searchparammap.begin(); it != searchparammap.end(); it++)
+    for (map<string, searchparam_s>::iterator it = searchparammap.begin(); it != searchparammap.end(); it++)
     {
-        en.ucioptions.Register(it->second, it->first, ucisearch, to_string(*it->second), 0, 0, searchtableinit);
+        en.ucioptions.Register(it->second.var, it->first, ucisearch, to_string(*it->second.var), it->second.min, it->second.max, searchtableinit);
     }
 #endif
     searchtableinit();

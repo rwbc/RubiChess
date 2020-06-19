@@ -1377,26 +1377,36 @@ extern engine en;
 
 
 #ifdef SEARCHOPTIONS
-extern map<string, int*> searchparammap;
+struct searchparam_s {
+    int *var;
+    int min;
+    int max;
+};
+
+extern map<string, searchparam_s> searchparammap;
 class searchparam {
 public:
     int v;
     string name;
-    searchparam(string n, int i) {
+    searchparam(string n, int i, int mi, int ma) {
         name = n;
         v = i;
-        searchparammap.insert(searchparammap.end(), pair<string, int*>(name, &v));
+        searchparam_s sp;
+        sp.var = &v;
+        sp.min = mi;
+        sp.max = ma;
+        searchparammap.insert(searchparammap.end(), pair<string, searchparam_s>(name, sp));
     }
     operator int() const { return v; }
     searchparam operator=(const int other) { v = other; return *this; }
 };
 
 //typedef int searchparam;
-#define REGISTERPARAM(x,y) searchparam x(#x,y);
+#define REGISTERPARAM(x,y,mi,ma) searchparam x(#x,y,mi,ma);
 
 #else
 typedef const int searchparam;
-#define REGISTERPARAM(x,y) searchparam x = y;
+#define REGISTERPARAM(x,y,mi,ma) searchparam x = y;
 #endif
 
 
