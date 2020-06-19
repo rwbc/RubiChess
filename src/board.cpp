@@ -135,7 +135,8 @@ chessmove::chessmove()
 
 string chessmove::toString()
 {
-    char s[100];
+    //char s[100];
+    string s;
 
     if (code == 0)
         return "(none)";
@@ -149,7 +150,14 @@ string chessmove::toString()
         to = GETTO(code);
     promotion = GETPROMOTION(code);
 
-    sprintf_s(s, "%c%d%c%d%c", (from & 0x7) + 'a', ((from >> 3) & 0x7) + 1, (to & 0x7) + 'a', ((to >> 3) & 0x7) + 1, PieceChar(promotion, true));
+    //sprintf_s(s, "%c%d%c%d%c", (from & 0x7) + 'a', ((from >> 3) & 0x7) + 1, (to & 0x7) + 'a', ((to >> 3) & 0x7) + 1, PieceChar(promotion, true));
+    s = ((from & 0x7) + 'a');
+    s += (((from >> 3) & 0x7) + '1');
+    s += ((to & 0x7) + 'a');
+    s += (((to >> 3) & 0x7) + '1');
+    if (promotion)
+        s += PieceChar(promotion, true);
+
     return s;
 }
 
@@ -2930,7 +2938,7 @@ void ucioptions_t::Print()
 #endif
 #ifdef SEARCHOPTIONS
         case ucisearch:
-            cout << "spin default " << op->def << "\n";
+            cout << "spin default " << op->def << "min -99999 max 99999\n";
             break;
 #endif
         case ucicombo:
