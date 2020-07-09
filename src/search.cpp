@@ -727,7 +727,6 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                     int historybonus = depth *depth;
                     if (score > beta + 100)
                         historybonus += depth;
-                    historybonus *= historybonus;
                     updateHistory(m->code, ms.cmptr, historybonus);
                     for (int i = 0; i < quietsPlayed; i++)
                     {
