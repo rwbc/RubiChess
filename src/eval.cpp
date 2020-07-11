@@ -183,8 +183,9 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eIsolatedpawnpenalty[i], "eIsolatedpawnpenalty", i, 8, 0, 0, tuneIt);
-    tuneIt = false;
-    registertuner(pos, &eps.eDoublepawnpenalty, "eDoublepawnpenalty", 0, 0, 0, 0, tuneIt);
+    tuneIt = true;
+    for (i = 0; i < 2; i++)
+        registertuner(pos, &eps.eDoublepawnpenalty[2], "eDoublepawnpenalty", i, 2, 0, 0, tuneIt);
     tuneIt = false;
     for (i = 0; i < 6; i++)
         for (j = 0; j < 6; j++)
@@ -210,7 +211,7 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eQueenattackedbysliderpenalty, "eQueenattackedbysliderpenalty", 0, 0, 0, 0, tuneIt);
 
     tuneIt = false;
@@ -466,8 +467,12 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
     }
 
     // doubled pawns
-    entryptr->value += EVAL(eps.eDoublepawnpenalty, S2MSIGN(Me) * POPCOUNT(piece00[WPAWN | Me] & (Me ? piece00[WPAWN | Me] >> 8 : piece00[WPAWN | Me] << 8)));
-    if (bTrace) te.pawns[Me] += EVAL(eps.eDoublepawnpenalty, S2MSIGN(Me) * POPCOUNT(piece00[WPAWN | Me] & (Me ? piece00[WPAWN | Me] >> 8 : piece00[WPAWN | Me] << 8)));
+    U64 doubledPawns = piece00[WPAWN | Me] & (Me ? piece00[WPAWN | Me] >> 8 : piece00[WPAWN | Me] << 8);
+    U64 blockedDoubledPawns = doubledPawns & (Me ? piece00[WPAWN | You] << 8 : piece00[WPAWN | You] >> 8);
+    entryptr->value += EVAL(eps.eDoublepawnpenalty[0], S2MSIGN(Me) * POPCOUNT(doubledPawns));
+    if (bTrace) te.pawns[Me] += EVAL(eps.eDoublepawnpenalty[0], S2MSIGN(Me) * POPCOUNT(doubledPawns));
+    entryptr->value += EVAL(eps.eDoublepawnpenalty[1], S2MSIGN(Me) * POPCOUNT(blockedDoubledPawns));
+    if (bTrace) te.pawns[Me] += EVAL(eps.eDoublepawnpenalty[1], S2MSIGN(Me) * POPCOUNT(blockedDoubledPawns));
 
     // Pawn storm evaluation
     int ki = kingpos[Me];
