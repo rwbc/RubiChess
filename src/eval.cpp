@@ -180,7 +180,7 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eAttackingpawnbonus[i], "eAttackingpawnbonus", i, 8, 0, 0, tuneIt && (i > 0 && i < 7));
-    tuneIt = false;
+    tuneIt = true;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eIsolatedpawnpenalty[i], "eIsolatedpawnpenalty", i, 8, 0, 0, tuneIt);
     tuneIt = true;
