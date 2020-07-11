@@ -32,7 +32,7 @@
 #define TDEBUG
 #endif
 
-#if 1
+#if 0
 #define EVALTUNE
 #endif
 
@@ -372,7 +372,7 @@ struct evalparamset {
     };
     eval eAttackingpawnbonus[8] = {  VALUE(   0,   0), VALUE( -32,  12), VALUE( -22, -12), VALUE(  -6,  -6), VALUE( -12,  -6), VALUE( -13,  -2), VALUE(   0,   0), VALUE(   0,   0)  };
     eval eIsolatedpawnpenalty[8] = {  VALUE( -10,  -5), VALUE( -10,  -6), VALUE( -16, -12), VALUE( -22, -12), VALUE( -26, -12), VALUE( -13, -11), VALUE(  -8, -10), VALUE( -15,  -3)  };
-    eval eDoublepawnpenalty[2] = { VALUE(-11, -23),VALUE(-11, -23) };
+    eval eDoublepawnpenalty[2] = {  VALUE( -11, -19), VALUE(  -4,  -8)  };
     eval eConnectedbonus[6][6] = {
         {  VALUE(   0,   0), VALUE(  10,  -2), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
         {  VALUE(   0,   0), VALUE(   4,   3), VALUE(  12,  12), VALUE(  28,  17), VALUE(  36,  20), VALUE(  56,  22)  },
