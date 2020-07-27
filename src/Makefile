@@ -38,7 +38,7 @@ ifeq ($(EXE),)
 	EXE=RubiChess
 endif
 
-CXXFLAGS=-std=c++11 -Wall -O3 -flto
+CXXFLAGS=-std=c++11 -Wall -O3
 
 ifeq ($(COMP),gcc)
 	CXX=g++
