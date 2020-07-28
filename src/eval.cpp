@@ -765,8 +765,7 @@ int chessposition::getEval()
     getpsqval();
 #endif
     ph = phase();
-    //positioneval pe;
-    memset(&psnevl, 0, sizeof(positioneval));
+    memset((void*)&psnevl, 0, sizeof(positioneval));
     int score;
 
     // reset the attackedBy information

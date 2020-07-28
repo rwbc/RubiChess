@@ -408,7 +408,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         else
         {
             staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
-            passedpawnsbb = psnevl.phentry->passedpawnbb[state & S2MMASK];
+            if (psnevl.phentry)
+                passedpawnsbb = psnevl.phentry->passedpawnbb[state & S2MMASK];
         }
     }
     staticevalstack[mstop] = staticeval;
