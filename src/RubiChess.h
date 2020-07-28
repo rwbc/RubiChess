@@ -1176,6 +1176,7 @@ public:
     U64 he_all;
     Materialhash mtrlhsh;
     Pawnhash pwnhsh;
+    positioneval psnevl;
 
     bool w2m();
     void BitboardSet(int index, PieceCode p);
@@ -1209,13 +1210,13 @@ public:
     bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
     uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
     int getpsqval(bool showDetails = false);  // only for eval trace and mirror test
-    template <EvalType Et, int Me> int getGeneralEval(positioneval *pe);
-    template <EvalType Et, PieceType Pt, int Me> int getPieceEval(positioneval *pe);
-    template <EvalType Et, int Me> int getLateEval(positioneval *pe);
-    template <EvalType Et, int Me> void getPawnAndKingEval(pawnhashentry *entry);
+    template <EvalType Et, int Me> int getGeneralEval();
+    template <EvalType Et, PieceType Pt, int Me> int getPieceEval();
+    template <EvalType Et, int Me> int getLateEval();
+    template <EvalType Et, int Me> void getPawnAndKingEval();
     template <EvalType Et> int getEval();
-    void getScaling(Materialhashentry *mhentry);
-    int getComplexity(int eval, pawnhashentry *phentry, Materialhashentry *mhentry);
+    void getScaling();
+    int getComplexity(int eval);
 
     template <RootsearchType RT> int rootsearch(int alpha, int beta, int depth, int inWindowLast);
     int alphabeta(int alpha, int beta, int depth);
@@ -1410,7 +1411,7 @@ public:
     int numofthreads;
     int lastCompleteDepth;
     // adjust padding to align searchthread at 64 bytes
-    uint8_t padding[16];
+    uint8_t padding[56];
 
     searchthread *searchthreads;
 };

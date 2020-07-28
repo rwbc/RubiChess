@@ -371,12 +371,13 @@ int chessposition::getpsqval(bool showDetails)
 }
 
 template <EvalType Et, int Me>
-void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
+void chessposition::getPawnAndKingEval()
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
     const int pc = WPAWN | Me;
     int index;
+    pawnhashentry* entryptr = psnevl.phentry;
     
     // kingshield safety
     entryptr->value += EVAL(eps.eKingshieldbonus, S2MSIGN(Me) * POPCOUNT(piece00[WPAWN | Me] & kingshieldMask[kingpos[Me]][Me]));
@@ -521,10 +522,11 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
 
 
 template <EvalType Et, PieceType Pt, int Me>
-int chessposition::getPieceEval(positioneval *pe)
+int chessposition::getPieceEval()
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
+    positioneval* pe = &psnevl;
     int result = 0;
     const int pc = Pt * 2 + Me;
     U64 pb = piece00[pc];
@@ -626,10 +628,11 @@ int chessposition::getPieceEval(positioneval *pe)
 
 
 template <EvalType Et, int Me>
-int chessposition::getLateEval(positioneval *pe)
+int chessposition::getLateEval()
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
+    positioneval* pe = &psnevl;
     int index;
     int result = 0;
     U64 occupied = occupied00[0] | occupied00[1];
@@ -723,10 +726,11 @@ int chessposition::getLateEval(positioneval *pe)
 
 
 template <EvalType Et, int Me>
-int chessposition::getGeneralEval(positioneval *pe)
+int chessposition::getGeneralEval()
 {
     const bool bTrace = (Et == TRACE);
     const int You = Me ^ S2MMASK;
+    positioneval* pe = &psnevl;
 
     attackedBy[Me][KING] = king_attacks[kingpos[Me]];
     attackedBy2[Me] = pe->phentry->attackedBy2[Me] | (attackedBy[Me][KING] & pe->phentry->attacked[Me]);
@@ -761,19 +765,20 @@ int chessposition::getEval()
     getpsqval();
 #endif
     ph = phase();
-    positioneval pe;
+    //positioneval pe;
+    memset(&psnevl, 0, sizeof(positioneval));
     int score;
 
     // reset the attackedBy information
     memset(attackedBy, 0, sizeof(attackedBy));
 
-    bool hashexist = mtrlhsh.probeHash(materialhash, &pe.mhentry);
+    bool hashexist = mtrlhsh.probeHash(materialhash, &psnevl.mhentry);
     if (!hashexist)
-        getScaling(pe.mhentry);
+        getScaling();
 
-    if (pe.mhentry->endgame)
+    if (psnevl.mhentry->endgame)
     {
-        score = pe.mhentry->endgame(this);
+        score = psnevl.mhentry->endgame(this);
         if (bTrace)
         {
             te.endgame = te.score = score;
@@ -782,33 +787,33 @@ int chessposition::getEval()
         return score;
     }
 
-    hashexist = pwnhsh.probeHash(pawnhash, &pe.phentry);
+    hashexist = pwnhsh.probeHash(pawnhash, &psnevl.phentry);
     if (bTrace || !hashexist)
     {
-        if (bTrace) pe.phentry->value = 0;
-        getPawnAndKingEval<Et, 0>(pe.phentry);
-        getPawnAndKingEval<Et, 1>(pe.phentry);
+        if (bTrace) psnevl.phentry->value = 0;
+        getPawnAndKingEval<Et, 0>();
+        getPawnAndKingEval<Et, 1>();
         U64 pawns = piece00[WPAWN] | piece00[BPAWN];
-        pe.phentry->bothFlanks = ((pawns & FLANKLEFT) && (pawns & FLANKRIGHT));
+        psnevl.phentry->bothFlanks = ((pawns & FLANKLEFT) && (pawns & FLANKRIGHT));
     }
 
-    int pawnEval = pe.phentry->value;
-    int generalEval = getGeneralEval<Et, 0>(&pe) + getGeneralEval<Et, 1>(&pe);
-    int piecesEval = getPieceEval<Et, KNIGHT, 0>(&pe)   + getPieceEval<Et, KNIGHT, 1>(&pe)
-                    + getPieceEval<Et, BISHOP, 0>(&pe) + getPieceEval<Et, BISHOP, 1>(&pe)
-                    + getPieceEval<Et, ROOK, 0>(&pe)   + getPieceEval<Et, ROOK, 1>(&pe)
-                    + getPieceEval<Et, QUEEN, 0>(&pe)  + getPieceEval<Et, QUEEN, 1>(&pe);
-    int lateEval = getLateEval<Et, 0>(&pe) + getLateEval<Et, 1>(&pe);
+    int pawnEval = psnevl.phentry->value;
+    int generalEval = getGeneralEval<Et, 0>() + getGeneralEval<Et, 1>();
+    int piecesEval = getPieceEval<Et, KNIGHT, 0>()   + getPieceEval<Et, KNIGHT, 1>()
+                    + getPieceEval<Et, BISHOP, 0>() + getPieceEval<Et, BISHOP, 1>()
+                    + getPieceEval<Et, ROOK, 0>()   + getPieceEval<Et, ROOK, 1>()
+                    + getPieceEval<Et, QUEEN, 0>()  + getPieceEval<Et, QUEEN, 1>();
+    int lateEval = getLateEval<Et, 0>() + getLateEval<Et, 1>();
 
     int totalEval = psqval + pawnEval + generalEval + piecesEval + lateEval;
 
     int sideToScale = totalEval > SCOREDRAW ? WHITE : BLACK;
 
-    sc = pe.mhentry->scale[sideToScale];
+    sc = psnevl.mhentry->scale[sideToScale];
     if (!bTrace && sc == SCALE_DRAW)
         return SCOREDRAW;
 
-    int complexity = getComplexity(totalEval, pe.phentry, pe.mhentry);
+    int complexity = getComplexity(totalEval);
     totalEval += complexity;
 
     if (bTrace)
@@ -833,20 +838,20 @@ int chessposition::getEval()
 }
 
 
-int chessposition::getComplexity(int val, pawnhashentry *phentry, Materialhashentry *mhentry)
+int chessposition::getComplexity(int val)
 {
         int evaleg = GETEGVAL(val);
         int sign = (evaleg > 0) - (evaleg < 0);
-        int complexity = EEVAL(eps.eComplexpawnsbonus, mhentry->numOfPawns);
-        complexity += EEVAL(eps.eComplexpawnflanksbonus, phentry->bothFlanks);
-        complexity += EEVAL(eps.eComplexonlypawnsbonus, mhentry->onlyPawns);
+        int complexity = EEVAL(eps.eComplexpawnsbonus, psnevl.mhentry->numOfPawns);
+        complexity += EEVAL(eps.eComplexpawnflanksbonus, psnevl.phentry->bothFlanks);
+        complexity += EEVAL(eps.eComplexonlypawnsbonus, psnevl.mhentry->onlyPawns);
         complexity += EEVAL(eps.eComplexadjust, 1);
 
         return sign * max(complexity, -abs(evaleg));
 }
 
 
-void chessposition::getScaling(Materialhashentry* mhentry)
+void chessposition::getScaling()
 {
     // Calculate scaling for endgames with special material
     const int pawns[2] = { POPCOUNT(piece00[WPAWN]), POPCOUNT(piece00[BPAWN]) };
@@ -873,13 +878,13 @@ void chessposition::getScaling(Materialhashentry* mhentry)
         && (occupied00[stronger] ^ piece00[WKNIGHT | stronger] ^ piece00[WBISHOP | stronger]) == piece00[WKING | stronger]
         && piece00[WKING | weaker] == occupied00[weaker])
     {
-        mhentry->endgame = KBNvK;
+        psnevl.mhentry->endgame = KBNvK;
         return;
     }
 
 
     // Default scaling
-    mhentry->scale[WHITE] = mhentry->scale[BLACK] = SCALE_NORMAL;
+    psnevl.mhentry->scale[WHITE] = psnevl.mhentry->scale[BLACK] = SCALE_NORMAL;
 
     // Check for insufficient material using simnple heuristic from chessprogramming site
     for (int me = WHITE; me <= BLACK; me++)
@@ -887,10 +892,10 @@ void chessposition::getScaling(Materialhashentry* mhentry)
         int you = me ^ S2MMASK;
 
         if (pawns[me] == 0 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
-            mhentry->scale[me] = nonpawnvalue[me] < materialvalue[ROOK] ? SCALE_DRAW : SCALE_HARDTOWIN;
+            psnevl.mhentry->scale[me] = nonpawnvalue[me] < materialvalue[ROOK] ? SCALE_DRAW : SCALE_HARDTOWIN;
 
         if (pawns[me] == 1 && nonpawnvalue[me] - nonpawnvalue[you] <= materialvalue[BISHOP])
-            mhentry->scale[me] = SCALE_ONEPAWN;
+            psnevl.mhentry->scale[me] = SCALE_ONEPAWN;
     }
 
     U64 bishopsbb = (piece00[WBISHOP] | piece00[BBISHOP]);
@@ -898,10 +903,10 @@ void chessposition::getScaling(Materialhashentry* mhentry)
         && (bishopsbb & WHITEBB) && (bishopsbb & BLACKBB)
         && nonpawnvalue[WHITE] <= materialvalue[BISHOP]
         && nonpawnvalue[BLACK] <= materialvalue[BISHOP])
-        mhentry->scale[WHITE] = mhentry->scale[BLACK] = SCALE_OCB;
+        psnevl.mhentry->scale[WHITE] = psnevl.mhentry->scale[BLACK] = SCALE_OCB;
     
-    mhentry->onlyPawns = (nonpawnvalue[0] + nonpawnvalue[1] == 0);
-    mhentry->numOfPawns = pawns[0] + pawns[1];
+    psnevl.mhentry->onlyPawns = (nonpawnvalue[0] + nonpawnvalue[1] == 0);
+    psnevl.mhentry->numOfPawns = pawns[0] + pawns[1];
 }
 
 // Explicit template instantiation

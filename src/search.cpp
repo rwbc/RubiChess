@@ -399,13 +399,17 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     prepareStack();
 
     // get static evaluation of the position
+    U64 passedpawnsbb = 0ULL;
     if (staticeval == NOSCORE)
     {
         if (movestack[mstop - 1].movecode == 0)
             // just reverse the staticeval before the null move respecting the tempo
             staticeval = -staticevalstack[mstop - 1] + CEVAL(eps.eTempo, 2);
         else
+        {
             staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+            passedpawnsbb = psnevl.phentry->passedpawnbb[state & S2MMASK];
+        }
     }
     staticevalstack[mstop] = staticeval;
 
@@ -626,7 +630,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             STATISTICSINC(extend_endgame);
             extendMove = 1;
         }
-        else if(!ISTACTICAL(m->code) && ms.cmptr[0] && ms.cmptr[1])
+        else if (!ISTACTICAL(m->code) && ms.cmptr[0] && ms.cmptr[1])
         {
             if (ms.cmptr[0][pc * 64 + to] > he_threshold && ms.cmptr[1][pc * 64 + to] > he_threshold)
             {
@@ -649,6 +653,10 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                     he_all = he_yes = 0ULL;
                 }
             }
+        }
+        else if (BITSET(GETFROM(m->code)) & passedpawnsbb)
+        {
+            extendMove = 1;
         }
 
         // Late move reduction
