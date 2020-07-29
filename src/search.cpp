@@ -662,7 +662,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         // Late move reduction
         int reduction = 0;
-        if (!extendMove && depth > 2 && !ISTACTICAL(m->code))
+        if (depth > 2 && !ISTACTICAL(m->code))
         {
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
@@ -681,7 +681,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             STATISTICSADD(red_pv, -(int)PVNode);
             STATISTICSDO(int red0 = reduction);
 
-            //reduction = reduction >> extendMove;
+            reduction = reduction >> extendMove;
 
             reduction = min(depth, max(0, reduction));
 
