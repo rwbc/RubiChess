@@ -657,12 +657,12 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         }
         else if (BITSET(GETFROM(m->code)) & passedpawnsbb)
         {
-            extendMove = 1;
+            //extendMove = 1;
         }
 
         // Late move reduction
         int reduction = 0;
-        if (depth > 2 && !ISTACTICAL(m->code))
+        if (!extendMove && depth > 2 && !ISTACTICAL(m->code))
         {
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
@@ -680,6 +680,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             STATISTICSADD(red_history, -stats / 5000);
             STATISTICSADD(red_pv, -(int)PVNode);
             STATISTICSDO(int red0 = reduction);
+
+            //reduction = reduction >> extendMove;
 
             reduction = min(depth, max(0, reduction));
 
@@ -916,9 +918,14 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
         }
     }
 
+    U64 passedpawnsbb = 0ULL;
     // get static evaluation of the position
     if (staticeval == NOSCORE)
+    {
         staticeval = S2MSIGN(state & S2MMASK) * getEval<NOTRACE>();
+        if (psnevl.phentry)
+            passedpawnsbb = psnevl.phentry->passedpawnbb[state & S2MMASK];
+    }
     staticevalstack[mstop] = staticeval;
 
     int quietsPlayed = 0;
@@ -939,6 +946,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
         SDEBUGDO(isDebugMove, pvmovenum[0] = i + 1; debugMovePlayed = true;)
         SDEBUGDO(pvmovenum[0] <= 0, pvmovenum[0] = -(i + 1););
 #endif
+
         playMove(m);
 
 #ifndef SDEBUG
@@ -957,6 +965,10 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
             reduction = reductiontable[1][depth][min(63, i + 1)] + inWindowLast - 1;
             STATISTICSINC(red_pi[1]);
             STATISTICSADD(red_lmr[1], reductiontable[1][depth][min(63, i + 1)] + inWindowLast - 1);
+#if 0
+            if (passedpawnsbb & BITSET(GETFROM(m->code)))
+                reduction--;
+#endif
         }
 
         int effectiveDepth = depth - reduction;
