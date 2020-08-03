@@ -2287,7 +2287,7 @@ chessmove* MoveSelector::next()
     case TACTICALSTATE:
         while ((m = captures->getNextMove(0)))
         {
-            if (pos->ply > 3 && !pos->see(m->code, onlyGoodCaptures))
+            if (pos->ply > 2 && !pos->see(m->code, onlyGoodCaptures))
             {
                 m->value |= BADTACTICALFLAG;
             }
