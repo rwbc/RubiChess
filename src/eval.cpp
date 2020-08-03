@@ -161,6 +161,8 @@ void registerallevals(chessposition *pos)
     registertuner(pos, &eps.eSafepawnattackbonus, "eSafepawnattackbonus", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
     registertuner(pos, &eps.eHangingpiecepenalty, "eHangingpiecepenalty", 0, 0, 0, 0, tuneIt);
+    tuneIt = true;
+    registertuner(pos, &eps.eQueenattackpenalty, "eQueenattackpenalty", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
     for (i = 0; i < 4; i++)
         for (j = 0; j < 8; j++)
@@ -211,7 +213,7 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eRookonkingarea, "eRookonkingarea", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishoponkingarea, "eBishoponkingarea", 0, 0, 0, 0, tuneIt);
 
@@ -222,7 +224,7 @@ void registerallevals(chessposition *pos)
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eMinorbehindpawn[i], "eMinorbehindpawn", i, 6, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 2; i++)
         registertuner(pos, &eps.eSlideronfreefilebonus[i], "eSlideronfreefilebonus", i, 2, 0, 0, tuneIt);
     tuneIt = false;
@@ -733,6 +735,18 @@ int chessposition::getLateEval(positioneval *pe)
         if (bTrace) te.minors[You] += EVAL(eps.eKnightOutpost, S2MSIGN(You) * POPCOUNT(outpost));
     }
 
+    // Threats against queen & m
+    U64 queenbb = piece00[WQUEEN | Me];
+    if (queenbb)
+    {
+        GETLSB(index, queenbb);
+        if (pieceMovesTo <KNIGHT>(index) & attackedBy[You][KNIGHT] & yoursafetargets)
+        {
+            // eQueenattackpenalty
+            result += EVAL(eps.eQueenattackpenalty, S2MSIGN(Me));
+            if (bTrace) te.threats[You] += EVAL(eps.eQueenattackpenalty, S2MSIGN(Me));
+        }
+    }
 
     return result;
 }
