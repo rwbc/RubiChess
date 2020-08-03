@@ -42,7 +42,7 @@ int castlerookfrom[4];
 U64 castleblockers[4];
 U64 castlekingwalk[4];
 int squareDistance[64][64];  // decreased by 1 for directly indexing evaluation arrays
-int psqtable[14][64];
+alignas(64) int psqtable[14][64];
 
 
 PieceType GetPieceType(char c)
@@ -206,27 +206,6 @@ chessmove* chessmovelist::getNextMove(int minval = INT_MIN)
         return &move[current];
 
     return nullptr;
-}
-
-
-chessmovesequencelist::chessmovesequencelist()
-{
-    length = 0;
-}
-
-string chessmovesequencelist::toString()
-{
-    string s = "";
-    for (int i = 0; i < length; i++)
-    {
-        s = s + move[i].toString() + " ";
-    }
-    return s;
-}
-
-void chessmovesequencelist::print()
-{
-    printf("%s", toString().c_str());
 }
 
 
@@ -445,7 +424,9 @@ int chessposition::getFromFen(const char* sFen)
     }
 
     isCheckbb = isAttackedBy<OCCUPIED>(kingpos[state & S2MMASK], (state & S2MMASK) ^ S2MMASK);
-    updatePins();
+    kingPinned = 0ULL;
+    updatePins<WHITE>();
+    updatePins<BLACK>();
 
     hash = zb.getHash(this);
     pawnhash = zb.getPawnHash(this);
@@ -458,7 +439,7 @@ int chessposition::getFromFen(const char* sFen)
 
 
 
-bool chessposition::applyMove(string s)
+uint32_t chessposition::applyMove(string s, bool resetMstop)
 {
     int from, to;
     PieceType promtype;
@@ -483,14 +464,14 @@ bool chessposition::applyMove(string s)
 
     if (playMove(&m))
     {
-        if (halfmovescounter == 0)
+        if (resetMstop && halfmovescounter == 0)
         {
             // Keep the list short, we have to keep below MAXMOVELISTLENGTH
             mstop = 0;
         }
-        return true;
+        return m.code;
     }
-    return false;
+    return 0;
 }
 
 
@@ -707,13 +688,15 @@ void chessposition::mirror()
     kingpos[0] = kingpos[1] ^ RANKMASK;
     kingpos[1] = kingpostemp ^ RANKMASK;
     materialhash = zb.getMaterialHash(this);
-    updatePins();
+    kingPinned = 0ULL;
+    updatePins<WHITE>();
+    updatePins<BLACK>();
 }
 
 
 void chessposition::prepareStack()
 {
-    myassert(mstop >= 0 && mstop < MAXMOVESEQUENCELENGTH, this, 1, mstop);
+    myassert(mstop >= 0 && mstop < MAXDEPTH, this, 1, mstop);
     // copy stack related data directly to stack
     memcpy(&movestack[mstop], &state, sizeof(chessmovestack));
 }
@@ -727,7 +710,7 @@ void chessposition::playNullMove()
     hash ^= zb.s2m ^ zb.ept[ept];
     ept = 0;
     ply++;
-    myassert(mstop < MAXMOVESEQUENCELENGTH, this, 1, mstop);
+    myassert(mstop <= MAXDEPTH, this, 1, mstop);
 }
 
 
@@ -906,25 +889,36 @@ bool chessposition::moveIsPseudoLegal(uint32_t c)
 }
 
 
-void chessposition::updatePins()
+// This is mainly for detecting discovered attacks on the queen so we exclude enemy queen from the test
+template <int Me> bool chessposition::sliderAttacked(int index, U64 occ)
 {
-    kingPinned = 0ULL;
-    for (int me = WHITE; me <= BLACK; me++)
+    const int You = Me ^ S2MMASK;
+    U64 ppr = ROOKATTACKS(occ, index);
+    U64 pdr = ROOKATTACKS(occ & ~ppr, index) & piece00[WROOK | You];
+    U64 ppb = BISHOPATTACKS(occ, index);
+    U64 pdb = BISHOPATTACKS(occ & ~ppb, index) & piece00[WBISHOP | You];
+
+    return pdr || pdb;
+}
+
+
+template <int Me> void chessposition::updatePins()
+{
+    const int You = Me ^ S2MMASK;
+    int k = kingpos[Me];
+    U64 occ = occupied00[You];
+    U64 attackers = ROOKATTACKS(occ, k) & (piece00[WROOK | You] | piece00[WQUEEN | You]);
+    attackers |= BISHOPATTACKS(occ, k) & (piece00[WBISHOP | You] | piece00[WQUEEN | You]);
+
+    while (attackers)
     {
-        int you = me ^ S2MMASK;
-        int k = kingpos[me];
-        U64 occ = occupied00[you];
-        U64 attackers = ROOKATTACKS(occ, k) & (piece00[WROOK | you] | piece00[WQUEEN | you]);
-        attackers |= BISHOPATTACKS(occ, k) & (piece00[WBISHOP | you] | piece00[WQUEEN | you]);
-        
-        while (attackers)
-        {
-            int index = pullLsb(&attackers);
-            U64 potentialPinners = betweenMask[index][k] & occupied00[me];
-            if (ONEORZERO(potentialPinners))
-                kingPinned |= potentialPinners;
-        }
+        int index = pullLsb(&attackers);
+        U64 potentialPinners = betweenMask[index][k] & occupied00[Me];
+        if (ONEORZERO(potentialPinners))
+            kingPinned |= potentialPinners;
     }
+    // 'Reset' attack vector to make getBestPossibleCapture work even if evaluation was skipped
+    attackedBy[Me][0] = 0xffffffffffffffff;
 }
 
 
@@ -1003,7 +997,7 @@ void chessposition::print(ostream* os)
 string chessposition::movesOnStack()
 {
     string s = "";
-    for (int i = 0; i < mstop; i++)
+    for (int i = rootheight; i < mstop; i++)
     {
         chessmove cm;
         cm.code = movestack[i].movecode;
@@ -1145,18 +1139,18 @@ string chessposition::getPv(uint32_t *table)
 #ifdef SDEBUG
 bool chessposition::triggerDebug(chessmove* nextmove)
 {
-    if (pvdebug[0] == 0)
+    if (pvdebug[0].code == 0)
         return false;
 
     int j = 0;
 
-    while (j + rootheight < mstop && pvdebug[j])
+    while (j + rootheight < mstop && pvdebug[j].code)
     {
-        if ((movestack[j + rootheight].movecode & 0xefff) != pvdebug[j])
+        if ((movestack[j + rootheight].movecode) != pvdebug[j].code)
             return false;
         j++;
     }
-    nextmove->code = pvdebug[j];
+    nextmove->code = pvdebug[j].code;
  
     return true;
 }
@@ -1170,26 +1164,29 @@ const char* PvAbortStr[] = {
 
 void chessposition::pvdebugout()
 {
-    printf("====================================\nMove  Num Dep   Val  Reason\n------------------------------------\n");
-    for (int i = 0; pvdebug[i]; i++)
+    printf("===========================================================\n  Window       Move  Num Dep    Val          Reason\n-----------------------------------------------------------\n");
+    for (int i = 0; pvdebug[i].code; i++)
     {
         chessmove m;
-        m.code = pvdebug[i];
-        printf("%s %s%2d  %2d  %4d  %s\n", m.toString().c_str(), pvmovenum[i] < 0 ? ">" : " ", abs(pvmovenum[i]), pvdepth[i], pvabortval[i], PvAbortStr[pvaborttype[i]]);
+        m.code = pvdebug[i].code;
+
+        printf("%6d/%6d  %s %s%2d  %2d  %5d %23s  %s\n",
+            pvalpha[i], pvbeta[i], m.toString().c_str(), pvmovenum[i] < 0 ? ">" : " ",
+            abs(pvmovenum[i]), pvdepth[i], pvabortval[i], PvAbortStr[pvaborttype[i]], pvadditionalinfo[i].c_str());
         if (pvaborttype[i + 1] == PVA_UNKNOWN || pvaborttype[i] == PVA_OMITTED)
             break;
     }
-    printf("====================================\n\n");
+    printf("===========================================================\n\n");
 }
 
 #endif
 
 // shameless copy from http://chessprogramming.wikispaces.com/Magic+Bitboards#Plain
-U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
-U64 mRookAttacks[64][1 << ROOKINDEXBITS];
+alignas(64) U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
+alignas(64) U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 
-SMagic mBishopTbl[64];
-SMagic mRookTbl[64];
+alignas(64) SMagic mBishopTbl[64];
+alignas(64) SMagic mRookTbl[64];
 
 
 
@@ -1656,7 +1653,7 @@ bool chessposition::playMove(chessmove *cm)
     }
 
     PREFETCH(&mtrlhsh.table[materialhash & MATERIALHASHMASK]);
-    PREFETCH(&pwnhsh->table[pawnhash & pwnhsh->sizemask]);
+    PREFETCH(&pwnhsh.table[pawnhash & pwnhsh.sizemask]);
 
     state ^= S2MMASK;
     isCheckbb = isAttackedBy<OCCUPIED>(kingpos[s2m ^ S2MMASK], s2m);
@@ -1679,8 +1676,10 @@ bool chessposition::playMove(chessmove *cm)
 
     ply++;
     movestack[mstop++].movecode = cm->code;
-    myassert(mstop < MAXMOVESEQUENCELENGTH, this, 1, mstop);
-    updatePins();
+    myassert(mstop <= MAXDEPTH, this, 1, mstop);
+    kingPinned = 0ULL;
+    updatePins<WHITE>();
+    updatePins<BLACK>();
 
     return true;
 }
@@ -2200,14 +2199,15 @@ int chessposition::getBestPossibleCapture()
     int me = state & S2MMASK;
     int you = me ^ S2MMASK;
     int captureval = 0;
+    const U64 msk = attackedBy[me][0];
 
-    if (piece00[WQUEEN | you])
+    if (piece00[WQUEEN | you] & msk)
         captureval += materialvalue[QUEEN];
-    else if (piece00[WROOK | you])
+    else if (piece00[WROOK | you] & msk)
         captureval += materialvalue[ROOK];
-    else if (piece00[WKNIGHT | you] || piece00[WBISHOP | you])
+    else if ((piece00[WKNIGHT | you] | piece00[WBISHOP | you]) & msk)
         captureval += materialvalue[KNIGHT];
-    else if (piece00[WPAWN | you])
+    else if (piece00[WPAWN | you] & msk)
         captureval += materialvalue[PAWN];
 
     // promotion
@@ -2228,8 +2228,7 @@ void MoveSelector::SetPreferredMoves(chessposition *p)
     if (!p->isCheckbb)
     {
         onlyGoodCaptures = true;
-        if (!ISTACTICAL(hashmove.code))
-            state = TACTICALINITSTATE;
+        state = TACTICALINITSTATE;
     }
     else
     {
@@ -2406,22 +2405,11 @@ static void uciSetSyzygyPath()
 }
 
 
-searchthread::searchthread()
-{
-    pwnhsh = NULL;
-}
-
-searchthread::~searchthread()
-{
-    delete pwnhsh;
-}
-
-
 engine::engine()
 {
     GetSystemInfo();
     initBitmaphelper();
-    rootposition.pwnhsh = new Pawnhash(1);  // some dummy pawnhash just to make the prefetch in playMove happy
+    rootposition.pwnhsh.setSize(1);  // some dummy pawnhash just to make the prefetch in playMove happy
     
     ucioptions.Register(&Threads, "Threads", ucispin, "1", 1, MAXTHREADS, uciSetThreads);  // order is important as the pawnhash depends on Threads > 0
     ucioptions.Register(&Hash, "Hash", ucispin, to_string(DEFAULTHASH), 1, MAXHASH, uciSetHash);
@@ -2446,31 +2434,42 @@ engine::engine()
 engine::~engine()
 {
     ucioptions.Set("SyzygyPath", "<empty>");
-    delete[] sthread;
-    delete rootposition.pwnhsh;
-}
-
-void engine::allocPawnhash()
-{
-    for (int i = 0; i < Threads; i++)
-    {
-        delete sthread[i].pwnhsh;
-        sthread[i].pos.pwnhsh = sthread[i].pwnhsh = new Pawnhash(sizeOfPh);
-    }
+    Threads = 0;
+    allocThreads();
+    rootposition.pwnhsh.remove();
+    rootposition.mtrlhsh.remove();
 }
 
 
 void engine::allocThreads()
 {
-    delete[] sthread;
-    sthread = new searchthread[Threads];
+    // first cleanup the old searchthreads memory
+    for (int i = 0; i < oldThreads; i++)
+    {
+        sthread[i].pos.mtrlhsh.remove();
+        sthread[i].pos.pwnhsh.remove();
+    }
+
+    freealigned64(sthread);
+
+    oldThreads = Threads;
+
+    if (!Threads)
+        return;
+
+    size_t size = Threads * sizeof(searchthread);
+    myassert(size % 64 == 0, nullptr, 1, size % 64);
+
+    sthread = (searchthread*) allocalign64(size);
+    memset((void*)sthread, 0, size);
     for (int i = 0; i < Threads; i++)
     {
         sthread[i].index = i;
         sthread[i].searchthreads = sthread;
         sthread[i].numofthreads = Threads;
+        sthread[i].pos.pwnhsh.setSize(sizeOfPh);
+        sthread[i].pos.mtrlhsh.init();
     }
-    allocPawnhash();
     prepareThreads();
     resetStats();
 }
@@ -2480,15 +2479,16 @@ void engine::prepareThreads()
 {
     for (int i = 0; i < Threads; i++)
     {
+        chessposition *pos = &sthread[i].pos;
         // copy new position to the threads copy but keep old history data
-        memcpy((void*)&sthread[i].pos, &rootposition, offsetof(chessposition, history));
-        sthread[i].pos.threadindex = i;
+        memcpy((void*)pos, &rootposition, offsetof(chessposition, history));
+        pos->threadindex = i;
         // early reset of variables that are important for bestmove selection
-        sthread[i].pos.bestmovescore[0] = NOSCORE;
-        sthread[i].pos.bestmove.code = 0;
-        sthread[i].pos.nodes = 0;
-        sthread[i].pos.nullmoveply = 0;
-        sthread[i].pos.nullmoveside = 0;
+        pos->bestmovescore[0] = NOSCORE;
+        pos->bestmove.code = 0;
+        pos->nodes = 0;
+        pos->nullmoveply = 0;
+        pos->nullmoveside = 0;
     }
 }
 
@@ -2496,10 +2496,14 @@ void engine::resetStats()
 {
     for (int i = 0; i < Threads; i++)
     {
-        memset(sthread[i].pos.history, 0, sizeof(chessposition::history));
-        memset(sthread[i].pos.capturehistory, 0, sizeof(chessposition::capturehistory));
-        memset(sthread[i].pos.counterhistory, 0, sizeof(chessposition::counterhistory));
-        memset(sthread[i].pos.countermove, 0, sizeof(chessposition::countermove));
+        chessposition* pos = &sthread[i].pos;
+        memset(pos->history, 0, sizeof(chessposition::history));
+        memset(pos->capturehistory, 0, sizeof(chessposition::capturehistory));
+        memset(pos->counterhistory, 0, sizeof(chessposition::counterhistory));
+        memset(pos->countermove, 0, sizeof(chessposition::countermove));
+        pos->he_yes = 0ULL;
+        pos->he_all = 0ULL;
+        pos->he_threshold = 8100;
     }
 }
 
@@ -2544,11 +2548,13 @@ void engine::communicate(string inputstring)
                     searchWaitStop();
                 }
                 rootposition.getFromFen(fen.c_str());
+                uint32_t lastopponentsmove = 0;
                 for (vector<string>::iterator it = moves.begin(); it != moves.end(); ++it)
                 {
-                    if (!rootposition.applyMove(*it))
+                    if (!(lastopponentsmove = rootposition.applyMove(*it)))
                         printf("info string Alarm! Zug %s nicht anwendbar (oder Enginefehler)\n", (*it).c_str());
                 }
+                ponderhit = (lastopponentsmove && lastopponentsmove == rootposition.pondermove.code);
                 rootposition.rootheight = rootposition.mstop;
                 rootposition.ply = 0;
                 rootposition.getRootMoves();
@@ -2588,18 +2594,29 @@ void engine::communicate(string inputstring)
                     else if (commandargs[ci] == "pv")
                     {
                         int i = 0;
+                        moves.clear();
                         while (++ci < cs)
+                                moves.push_back(commandargs[ci]);
+
+                        for (vector<string>::iterator it = moves.begin(); it != moves.end(); ++it)
                         {
-                            string s = commandargs[ci];
-                            if (s.size() < 4)
+                            if (!rootposition.applyMove(*it, false))
+                            {
+                                printf("info string Alarm! Debug PV Zug %s nicht anwendbar (oder Enginefehler)\n", (*it).c_str());
                                 continue;
-                            int from = AlgebraicToIndex(s);
-                            int to = AlgebraicToIndex(&s[2]);
-                            int promotion = (s.size() <= 4) ? BLANK : (GetPieceType(s[4]) << 1); // Remember: S2m is missing here
-                            rootposition.pvdebug[i++] = to | (from << 6) | (promotion << 12);
+                            }
+                            U64 h = rootposition.movestack[rootposition.mstop - 1].hash;
+                            tp.markDebugSlot(h, i);
+                            rootposition.pvdebug[i].code = rootposition.movestack[rootposition.mstop - 1].movecode;
+                            rootposition.pvdebug[i++].hash = h;
                         }
-                        rootposition.pvdebug[i] = 0;
-                        prepareThreads();
+                        rootposition.pvdebug[i].code = 0;
+                        while (i--) {
+                            chessmove m;
+                            m.code = rootposition.pvdebug[i].code;
+                            rootposition.unplayMove(&m);
+                        }
+                        prepareThreads();   // To copy the debug information to the threads position object
                     }
 #endif
                 }
@@ -2694,7 +2711,7 @@ void engine::communicate(string inputstring)
                 pendingposition = (fen != "");
                 break;
             case GO:
-                resetPonder();
+                pondersearch = NO;
                 searchmoves.clear();
                 wtime = btime = winc = binc = movestogo = mate = maxdepth = 0;
                 maxnodes = 0ULL;
@@ -2776,7 +2793,7 @@ void engine::communicate(string inputstring)
                 }
                 break;
             case PONDERHIT:
-                HitPonder();
+                pondersearch = HITPONDER;
                 break;
             case STOP:
             case QUIT:
@@ -2932,9 +2949,9 @@ void ucioptions_t::Print()
 
 
 // Some global objects
-engine en;
-evalparamset eps;
-zobrist zb;
+alignas(64) evalparamset eps;
+alignas(64) zobrist zb;
+alignas(64) engine en;
 
 // Explicit template instantiation
 // This avoids putting these definitions in header file
@@ -2943,3 +2960,6 @@ template U64 chessposition::pieceMovesTo<KNIGHT>(int);
 template U64 chessposition::pieceMovesTo<BISHOP>(int);
 template U64 chessposition::pieceMovesTo<ROOK>(int);
 template U64 chessposition::pieceMovesTo<QUEEN>(int);
+template bool chessposition::sliderAttacked<WHITE>(int index, U64 occ);
+template bool chessposition::sliderAttacked<BLACK>(int index, U64 occ);
+

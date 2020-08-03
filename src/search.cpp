@@ -79,18 +79,26 @@ inline int chessposition::getHistory(uint32_t code, int16_t **cmptr)
 }
 
 
+#define HISTORYMAXDEPTH 20
+#define HISTORYAGESHIFT 8
+#define HISTORYNEWSHIFT 5
+
 inline void chessposition::updateHistory(uint32_t code, int16_t **cmptr, int value)
 {
     int pc = GETPIECE(code);
     int s2m = pc & S2MMASK;
     int from = GETFROM(code);
     int to = GETCORRECTTO(code);
-    value = max(-256, min(256, value));
-    int delta = 32 * value - history[s2m][from][to] * abs(value) / 256;
+    value = max(-HISTORYMAXDEPTH * HISTORYMAXDEPTH, min(HISTORYMAXDEPTH * HISTORYMAXDEPTH, value));
+
+    int delta = value * (1 << HISTORYNEWSHIFT) - history[s2m][from][to] * abs(value) / (1 << HISTORYAGESHIFT);
+    myassert(history[s2m][from][to] + delta < MAXINT16 && history[s2m][from][to] + delta > MININT16, this, 2, history[s2m][from][to], delta);
+
     history[s2m][from][to] += delta;
+
     for (int i = 0; i < CMPLIES; i++)
         if (cmptr[i]) {
-            delta = 32 * value - cmptr[i][pc * 64 + to] * abs(value) / 256;
+            delta = value * (1 << HISTORYNEWSHIFT) - cmptr[i][pc * 64 + to] * abs(value) / (1 << HISTORYAGESHIFT);
             cmptr[i][pc * 64 + to] += delta;
         }
 }
@@ -109,7 +117,7 @@ inline void chessposition::updateCaptureHistory(uint32_t code, int value)
 int chessposition::getQuiescence(int alpha, int beta, int depth)
 {
     int score;
-    int bestscore = SHRT_MIN;
+    int bestscore = NOSCORE;
     bool myIsCheck = (bool)isCheckbb;
 #ifdef EVALTUNE
     if (depth < 0) isQuiet = false;
@@ -321,6 +329,10 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         return getQuiescence(alpha, beta, depth);
     }
 
+    // Maximum depth
+    if (mstop >= MAXDEPTH - MOVESTACKRESERVE)
+        return getQuiescence(alpha, beta, depth);
+
 
     // Get move for singularity check and change hash to seperate partial searches from full searches
     uint16_t excludeMove = excludemovestack[mstop - 1];
@@ -331,7 +343,9 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     chessmove debugMove;
     bool isDebugPv = !excludeMove && triggerDebug(&debugMove);
     bool debugMovePlayed = false;
-    SDEBUGDO(isDebugPv, pvaborttype[ply + 1] = PVA_UNKNOWN; pvdepth[ply] = depth; pvmovenum[ply] = 0;);
+    int isDebugPosition = tp.isDebugPosition(newhash);
+    bool debugTransposition = (isDebugPosition >= 0 && !isDebugPv);
+    SDEBUGDO(isDebugPv, pvaborttype[ply + 1] = PVA_UNKNOWN; pvdepth[ply] = depth; pvalpha[ply] = alpha; pvbeta[ply] = beta; pvmovenum[ply] = 0;);
 #endif
 
     bool tpHit = tp.probeHash(newhash, &hashscore, &staticeval, &hashmovecode, depth, alpha, beta, ply);
@@ -347,7 +361,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             if (!PVNode)
             {
                 STATISTICSINC(ab_tt);
-                SDEBUGDO(isDebugPv, pvabortval[ply] = hashscore; if (debugMove.code == (fullhashmove & 0xefff)) pvaborttype[ply] = PVA_FROMTT; else pvaborttype[ply] = PVA_DIFFERENTFROMTT; );
+                SDEBUGDO(isDebugPv, pvabortval[ply] = hashscore; if (debugMove.code == fullhashmove) pvaborttype[ply] = PVA_FROMTT; else pvaborttype[ply] =  PVA_DIFFERENTFROMTT; );
+                SDEBUGDO(isDebugPv, pvadditionalinfo[ply] = "PV = " + getPv(pvtable[ply]) + "  " + tp.debugGetPv(newhash); );
                 return hashscore;
             }
         }
@@ -477,29 +492,32 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     }
 
     // ProbCut
+    const int probcutmargin = 100;
     if (!PVNode && depth >= 5 && abs(beta) < SCOREWHITEWINS)
     {
-        int rbeta = min(SCOREWHITEWINS, beta + 100);
+        int rbeta = min(SCOREWHITEWINS, beta + probcutmargin);
         chessmovelist *movelist = new chessmovelist;
         movelist->length = CreateMovelist<TACTICAL>(this, &movelist->move[0]);
 
         for (int i = 0; i < movelist->length; i++)
         {
-            if (!see(movelist->move[i].code, rbeta - staticeval))
+            chessmove* cm = &movelist->move[i];
+
+            if (!see(cm->code, rbeta - staticeval))
                 continue;
 
-            if (playMove(&movelist->move[i]))
+            if (playMove(cm))
             {
                 int probcutscore = -alphabeta(-rbeta, -rbeta + 1, depth - 4);
 
-                unplayMove(&movelist->move[i]);
+                unplayMove(cm);
 
                 if (probcutscore >= rbeta)
                 {
                     // ProbCut off
                     delete movelist;
                     STATISTICSINC(prune_probcut);
-                    SDEBUGDO(isDebugPv, pvabortval[ply] = probcutscore; pvaborttype[ply] = PVA_PROBCUTPRUNED;);
+                    SDEBUGDO(isDebugPv, pvabortval[ply] = probcutscore; pvaborttype[ply] = PVA_PROBCUTPRUNED; pvadditionalinfo[ply] = "pruned by " + movelist->move[i].toString(););
                     return probcutscore;
                 }
             }
@@ -539,7 +557,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     {
         ms.legalmovenum++;
 #ifdef SDEBUG
-        bool isDebugMove = (debugMove.code == (m->code & 0xefff));
+        bool isDebugMove = (debugMove.code == m->code);
         SDEBUGDO(isDebugMove, pvmovenum[ply] = legalMoves + 1;);
         SDEBUGDO((isDebugPv && pvmovenum[ply] <= 0), pvmovenum[ply] = -(legalMoves + 1););
 #endif
@@ -585,6 +603,8 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
         int stats = getHistory(m->code, ms.cmptr);
         int extendMove = 0;
+        int pc = GETPIECE(m->code);
+        int to = GETCORRECTTO(m->code);
 
         // Singular extension
         if ((m->code & 0xffff) == hashmovecode
@@ -615,7 +635,32 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         // Extend captures that lead into endgame
         else if (ph > 200 && GETCAPTURE(m->code) >= WKNIGHT)
         {
+            STATISTICSINC(extend_endgame);
             extendMove = 1;
+        }
+        else if(!ISTACTICAL(m->code) && ms.cmptr[0] && ms.cmptr[1])
+        {
+            if (ms.cmptr[0][pc * 64 + to] > he_threshold && ms.cmptr[1][pc * 64 + to] > he_threshold)
+            {
+                STATISTICSINC(extend_history);
+                extendMove = 1;
+                he_yes++;
+            }
+            if ((++he_all & 0x3fffff) == 0)
+            {
+                // adjust history extension threshold
+                if (he_all / 512 < he_yes)
+                {
+                    // 1/512 ~ extension ratio > 0.1953% ==> increase threshold
+                    he_threshold = he_threshold * 257 / 256;
+                    he_all = he_yes = 0ULL;
+                } else if (he_all / 32768 > he_yes)
+                {
+                    // 1/32768 ~ extension ratio < 0.0030% ==> decrease threshold
+                    he_threshold = he_threshold * 255 / 256;
+                    he_all = he_yes = 0ULL;
+                }
+            }
         }
 
         // Late move reduction
@@ -625,7 +670,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             reduction = reductiontable[positionImproved][depth][min(63, legalMoves + 1)];
 
             // adjust reduction by stats value
-            reduction -= stats / 4096;
+            reduction -= stats / 5000;
 
             // adjust reduction at PV nodes
             reduction -= PVNode;
@@ -635,7 +680,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
             STATISTICSINC(red_pi[positionImproved]);
             STATISTICSADD(red_lmr[positionImproved], reductiontable[positionImproved][depth][min(63, legalMoves + 1)]);
-            STATISTICSADD(red_history, -stats / 4096);
+            STATISTICSADD(red_history, -stats / 5000);
             STATISTICSADD(red_pv, -(int)PVNode);
             STATISTICSDO(int red0 = reduction);
 
@@ -646,8 +691,6 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
             STATISTICSADD(red_total, reduction);
         }
 
-        int pc = GETPIECE(m->code);
-        int to = GETCORRECTTO(m->code);
         effectiveDepth = depth + extendall - reduction + extendMove;
 
         // Prune moves with bad counter move history
@@ -676,27 +719,33 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         STATISTICSINC(moves_played[(bool)ISTACTICAL(m->code)]);
 
         LegalMoves[ply] = ms.legalmovenum;
+        SDEBUGDO(isDebugMove, pvadditionalinfo[ply-1] = ""; );
 
         if (reduction)
         {
             // LMR search; test against alpha
             score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            SDEBUGDO(isDebugMove, pvadditionalinfo[ply-1] += "PVS(alpha=" + to_string(alpha) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
             if (score > alpha)
             {
                 // research without reduction
                 effectiveDepth += reduction;
                 score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+                SDEBUGDO(isDebugMove, pvadditionalinfo[ply-1] += "PVS(alpha=" + to_string(alpha) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
             }
         }
         else if (!PVNode || legalMoves > 1)
         {
             // Np PV node or not the first move; test against alpha
             score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+            SDEBUGDO(isDebugMove, pvadditionalinfo[ply-1] += "PVS(alpha=" + to_string(alpha) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
         }
         // (re)search with full window at PV nodes if necessary
-        if (PVNode && (legalMoves == 1 || score > alpha))
+        if (PVNode && (legalMoves == 1 || score > alpha)) {
             score = -alphabeta(-beta, -alpha, effectiveDepth - 1);
-
+            SDEBUGDO(isDebugMove, pvadditionalinfo[ply-1] += "PVS(alpha=" + to_string(alpha)+ ",beta=" +to_string(beta) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
+        }
+        SDEBUGDO(isDebugMove, pvadditionalinfo[ply - 1] += "score=" + to_string(score) + "  "; );
         unplayMove(m);
 
         if (en.stopLevel == ENGINESTOPIMMEDIATELY)
@@ -706,7 +755,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
         }
 
         SDEBUGDO(isDebugMove, pvabortval[ply] = score;);
-        SDEBUGDO(isDebugMove, pvaborttype[ply] = PVA_BELOWALPHA;);
+        SDEBUGDO(isDebugMove, pvaborttype[ply] = PVA_BELOWALPHA; pvadditionalinfo[ply] += "Alpha=" + to_string(alpha) + " at this point."; );
         if (score > bestscore)
         {
             bestscore = score;
@@ -749,6 +798,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
                     tp.addHash(newhash, FIXMATESCOREADD(score, ply), staticeval, HASHBETA, effectiveDepth, (uint16_t)bestcode);
 
                 SDEBUGDO(isDebugPv, pvaborttype[ply] = isDebugMove ? PVA_BETACUT : debugMovePlayed ? PVA_NOTBESTMOVE : PVA_OMITTED;);
+                SDEBUGDO(isDebugPv || debugTransposition, tp.debugSetPv(newhash, movesOnStack() + " " + (debugTransposition ? "(transposition)" : "") + " effectiveDepth=" + to_string(effectiveDepth)););
                 return score;   // fail soft beta-cutoff
             }
 
@@ -786,6 +836,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
     if (bestcode && !excludeMove)
     {
         tp.addHash(newhash, FIXMATESCOREADD(bestscore, ply), staticeval, eval_type, depth, (uint16_t)bestcode);
+        SDEBUGDO(isDebugPv || debugTransposition, tp.debugSetPv(newhash, movesOnStack() + " " + (debugTransposition ? "(transposition)" : "") + " depth=" + to_string(depth)););
     }
 
     return bestscore;
@@ -794,7 +845,7 @@ int chessposition::alphabeta(int alpha, int beta, int depth)
 
 
 template <RootsearchType RT>
-int chessposition::rootsearch(int alpha, int beta, int depth)
+int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
 {
     int score;
     uint16_t hashmovecode = 0;
@@ -806,7 +857,6 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
     int maxmoveindex;
 
     const bool isMultiPV = (RT == MultiPVSearch);
-    const bool doPonder = (RT == PonderSearch);
 
     nodes++;
     CheckForImmediateStop();
@@ -821,7 +871,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         for (int i = 0; i < maxmoveindex; i++)
         {
             multipvtable[i][0] = 0;
-            bestmovescore[i] = SHRT_MIN + 1;
+            bestmovescore[i] = NOSCORE;
         }
     }
 
@@ -829,7 +879,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
     chessmove debugMove;
     bool isDebugPv = triggerDebug(&debugMove);
     bool debugMovePlayed = false;
-    SDEBUGDO(isDebugPv, pvaborttype[1] = PVA_UNKNOWN; pvdepth[0] = depth; pvmovenum[ply] = 0;);
+    SDEBUGDO(isDebugPv, pvaborttype[1] = PVA_UNKNOWN; pvdepth[0] = depth; pvalpha[0] = alpha; pvbeta[0] = beta; pvmovenum[ply] = 0;);
 #endif
 
     if (!isMultiPV
@@ -842,11 +892,16 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         {
             if (bestmove.code != fullhashmove) {
                 bestmove.code = fullhashmove;
-                if (doPonder) pondermove.code = 0;
+                pondermove.code = 0;
             }
             updatePvTable(fullhashmove, false);
             if (score > alpha) bestmovescore[0] = score;
-            if (score > SHRT_MIN + 1) return score;
+            if (score > NOSCORE)
+            {
+                SDEBUGDO(isDebugPv, pvabortval[ply] = score; if (debugMove.code == fullhashmove) pvaborttype[ply] = PVA_FROMTT; else pvaborttype[ply] = PVA_DIFFERENTFROMTT; );
+                SDEBUGDO(isDebugPv, pvadditionalinfo[ply] = "PV = " + getPv(pvtable[ply]) + "  " + tp.debugGetPv(hash); );
+                return score;
+            }
         }
     }
 
@@ -893,14 +948,14 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
 
         m = &rootmovelist.move[i];
 #ifdef SDEBUG
-        bool isDebugMove = (debugMove.code == (m->code & 0xefff));
+        bool isDebugMove = (debugMove.code == m->code);
         SDEBUGDO(isDebugMove, pvmovenum[0] = i + 1; debugMovePlayed = true;)
         SDEBUGDO(pvmovenum[0] <= 0, pvmovenum[0] = -(i + 1););
 #endif
         playMove(m);
 
 #ifndef SDEBUG
-        if (en.moveoutput && !threadindex && (!doPonder || depth < MAXDEPTH - 1))
+        if (en.moveoutput && !threadindex && (en.pondersearch != PONDERING || depth < MAXDEPTH - 1))
         {
             char s[256];
             sprintf_s(s, "info depth %d currmove %s currmovenumber %d\n", depth, m->toString().c_str(), i + 1);
@@ -910,34 +965,34 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
         int reduction = 0;
 
         // Late move reduction
-        if (depth > 2 && !ISTACTICAL(m->code))
+        if (!ISTACTICAL(m->code))
         {
-            reduction = reductiontable[1][depth][min(63, i + 1)];
+            reduction = reductiontable[1][depth][min(63, i + 1)] + inWindowLast - 1;
             STATISTICSINC(red_pi[1]);
-            STATISTICSADD(red_lmr[1], reductiontable[1][depth][min(63, i + 1)]);
+            STATISTICSADD(red_lmr[1], reductiontable[1][depth][min(63, i + 1)] + inWindowLast - 1);
         }
 
         int effectiveDepth = depth - reduction;
+        SDEBUGDO(isDebugMove, pvadditionalinfo[ply - 1] = ""; );
 
-        if (reduction)
+        if (i > 0)
         {
             // LMR search; test against alpha
             score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
-            if (score > alpha)
+            SDEBUGDO(isDebugMove, pvadditionalinfo[ply - 1] += "PVS(alpha=" + to_string(alpha) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
+            if (reduction && score > alpha)
             {
                 // research without reduction
                 effectiveDepth += reduction;
                 score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
+                SDEBUGDO(isDebugMove, pvadditionalinfo[ply - 1] += "PVS(alpha=" + to_string(alpha) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
             }
         }
-        else if (i > 0)
-        {
-            // Not the first move; test against alpha
-            score = -alphabeta(-alpha - 1, -alpha, effectiveDepth - 1);
-        }
         // (re)search with full window if necessary
-        if (i == 0 || score > alpha)
+        if (i == 0 || score > alpha) {
             score = -alphabeta(-beta, -alpha, effectiveDepth - 1);
+            SDEBUGDO(isDebugMove, pvadditionalinfo[ply - 1] += "PVS(alpha=" + to_string(alpha) + ",beta=" + to_string(beta) + "/depth=" + to_string(effectiveDepth - 1) + ");score=" + to_string(score) + "..."; );
+        }
 
         SDEBUGDO(isDebugMove, pvabortval[0] = score;)
 
@@ -1002,9 +1057,9 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
                 if (bestmove.code != pvtable[0][0])
                 {
                     bestmove.code = pvtable[0][0];
-                    if (doPonder) pondermove.code = pvtable[0][1];
+                    pondermove.code = pvtable[0][1];
                 }
-                else if (doPonder && pvtable[0][1]) {
+                else if (pvtable[0][1]) {
                     // use new ponder move
                     pondermove.code = pvtable[0][1];
                 }
@@ -1014,7 +1069,6 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
             }
             if (score >= beta)
             {
-                SDEBUGDO(isDebugPv, pvaborttype[0] = isDebugMove ? PVA_BETACUT : debugMovePlayed ? PVA_NOTBESTMOVE : PVA_OMITTED;);
                 // Killermove
                 if (!ISTACTICAL(m->code))
                 {
@@ -1032,6 +1086,8 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
                     }
                 }
                 tp.addHash(hash, beta, staticeval, HASHBETA, effectiveDepth, (uint16_t)m->code);
+                SDEBUGDO(isDebugPv, pvaborttype[0] = isDebugMove ? PVA_BETACUT : debugMovePlayed ? PVA_NOTBESTMOVE : PVA_OMITTED;);
+                SDEBUGDO(isDebugPv, tp.debugSetPv(hash, movesOnStack() + " effectiveDepth=" + to_string(effectiveDepth)););
                 return beta;   // fail hard beta-cutoff
             }
         }
@@ -1052,6 +1108,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
     }
     else {
         tp.addHash(hash, alpha, staticeval, eval_type, depth, (uint16_t)bestmove.code);
+        SDEBUGDO(isDebugPv, tp.debugSetPv(hash, movesOnStack() + " depth=" + to_string(depth)););
         return alpha;
     }
 }
@@ -1060,10 +1117,11 @@ int chessposition::rootsearch(int alpha, int beta, int depth)
 static void uciScore(searchthread *thr, int inWindow, U64 nowtime, int score, int mpvIndex = 0)
 {
     int msRun = (int)((nowtime - en.starttime) * 1000 / en.frequency);
+#ifndef SDEBUG
     if (inWindow != 1 && (msRun - en.lastReport) < 200)
         return;
-
-    const char* boundscore[] = { "upperbound", "", "lowerbound" };
+#endif
+    const char* boundscore[] = { "upperbound ", " ", "lowerbound " };
     char s[4096];
     chessposition *pos = &thr->pos;
     en.lastReport = msRun;
@@ -1073,15 +1131,15 @@ static void uciScore(searchthread *thr, int inWindow, U64 nowtime, int score, in
 
     if (!MATEDETECTED(score))
     {
-        sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score cp %d %s nodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
+        sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score cp %d %snodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
             thr->depth, pos->seldepth, mpvIndex + 1, msRun, score, boundscore[inWindow], nodes, nps,
             en.tbhits, tp.getUsedinPermill(), pvstring.c_str());
     }
     else
     {
         int matein = (score > 0 ? (SCOREWHITEWINS - score + 1) / 2 : (SCOREBLACKWINS - score) / 2);
-        sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score mate %d nodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
-            thr->depth, pos->seldepth, mpvIndex + 1, msRun, matein, nodes, nps,
+        sprintf_s(s, "info depth %d seldepth %d multipv %d time %d score mate %d %snodes %llu nps %llu tbhits %llu hashfull %d pv %s\n",
+            thr->depth, pos->seldepth, mpvIndex + 1, msRun, matein, boundscore[inWindow], nodes, nps,
             en.tbhits, tp.getUsedinPermill(), pvstring.c_str());
     }
     cout << s;
@@ -1096,10 +1154,9 @@ static void search_gen1(searchthread *thr)
 {
     int score;
     int alpha, beta;
-    int deltaalpha = 8;
-    int deltabeta = 8;
+    int delta = 8;
     int maxdepth;
-    int inWindow;
+    int inWindow = 1;
     bool reportedThisDepth;
 
 #ifdef TDEBUG
@@ -1107,7 +1164,6 @@ static void search_gen1(searchthread *thr)
 #endif
 
     const bool isMultiPV = (RT == MultiPVSearch);
-    const bool doPonder = (RT == PonderSearch);
     const bool isMainThread = (thr->index == 0);
 
     chessposition *pos = &thr->pos;
@@ -1126,18 +1182,18 @@ static void search_gen1(searchthread *thr)
             maxdepth = MAXDEPTH - 1;
     }
 
-    alpha = SHRT_MIN + 1;
-    beta = SHRT_MAX;
+    alpha = SCOREBLACKWINS;
+    beta = SCOREWHITEWINS;
 
     uint32_t lastBestMove = 0;
     int constantRootMoves = 0;
+    int lastiterationscore = NOSCORE;
     en.lastReport = 0;
     U64 nowtime;
     pos->lastpv[0] = 0;
     bool isDraw = (pos->testRepetiton() >= 2) || (pos->halfmovescounter >= 100);
     do
     {
-        inWindow = 1;
         pos->seldepth = thr->depth;
         if (pos->rootmovelist.length == 0)
         {
@@ -1149,12 +1205,12 @@ static void search_gen1(searchthread *thr)
         {
             // remis via repetition or 50 moves rule
             pos->bestmove.code = 0;
-            if (doPonder) pos->pondermove.code = 0;
+            pos->pondermove.code = 0;
             score = pos->bestmovescore[0] = SCOREDRAW;
         }
         else
         {
-            score = pos->rootsearch<RT>(alpha, beta, thr->depth);
+            score = pos->rootsearch<RT>(alpha, beta, thr->depth, inWindow);
 #ifdef TDEBUG
             if (en.stopLevel == ENGINESTOPIMMEDIATELY && isMainThread)
             {
@@ -1168,25 +1224,28 @@ static void search_gen1(searchthread *thr)
             {
                 // research with lower alpha and reduced beta
                 beta = (alpha + beta) / 2;
-                alpha = max(SHRT_MIN + 1, alpha - deltaalpha);
-                deltaalpha += deltaalpha / 4 + 2;
-                if (abs(alpha) > 1000)
-                    deltaalpha = SHRT_MAX << 1;
+                alpha = max(SCOREBLACKWINS, alpha - delta);
+                if (abs(alpha) > 5000)
+                    delta = SCOREWHITEWINS;
+                else
+                    delta += delta / 4 + 2;
                 inWindow = 0;
                 reportedThisDepth = false;
             }
             else if (score == beta)
             {
                 // research with higher beta
-                beta = min(SHRT_MAX, beta + deltabeta);
-                deltabeta += deltabeta / 4 + 2;
-                if (abs(beta) > 1000)
-                    deltabeta = SHRT_MAX << 1;
+                beta = min(SCOREWHITEWINS, beta + delta);
+                if (abs(beta) > 5000)
+                    delta = SCOREWHITEWINS;
+                else
+                    delta += delta / 4 + 2;
                 inWindow = 2;
                 reportedThisDepth = false;
             }
             else
             {
+                inWindow = 1;
                 thr->lastCompleteDepth = thr->depth;
                 if (score >= en.terminationscore)
                 {
@@ -1195,13 +1254,12 @@ static void search_gen1(searchthread *thr)
                 }
                 else if (thr->depth > 4) {
                     // next depth with new aspiration window
-                    deltaalpha = 8;
-                    deltabeta = 8;
+                    delta = 8;
                     if (isMultiPV)
-                        alpha = pos->bestmovescore[en.MultiPV - 1] - deltaalpha;
+                        alpha = pos->bestmovescore[en.MultiPV - 1] - delta;
                     else
-                        alpha = score - deltaalpha;
-                    beta = score + deltabeta;
+                        alpha = score - delta;
+                    beta = score + delta;
                 }
             }
         }
@@ -1251,34 +1309,58 @@ static void search_gen1(searchthread *thr)
                     int dummystaticeval;
                     tp.probeHash(pos->hash, &score, &dummystaticeval, &mc, MAXDEPTH, alpha, beta, 0);
                     pos->bestmove.code = pos->shortMove2FullMove(mc);
-                    if (doPonder) pos->pondermove.code = 0;
+                    pos->pondermove.code = 0;
                 }
                     
                 // still no bestmove...
                 if (!pos->bestmove.code && pos->rootmovelist.length > 0 && !isDraw)
                     pos->bestmove.code = pos->rootmovelist.move[0].code;
 
-                if (pos->rootmovelist.length == 1 && !pos->tbPosition && en.endtime1 && !en.isPondering() && pos->lastbestmovescore != NOSCORE)
+                if (pos->rootmovelist.length == 1 && !pos->tbPosition && en.endtime1 && en.pondersearch != PONDERING && pos->lastbestmovescore != NOSCORE)
                     // Don't report score of instamove; use the score of last position instead
                     pos->bestmovescore[0] = pos->lastbestmovescore;
 
                 if (pos->useRootmoveScore)
-                    // We have a tablebase score so report this
-                    pos->bestmovescore[0] = pos->rootmovelist.move[0].value;
+                {
+                    // We have a tablebase score so report this and adjust the search window
+                    int tbScore = pos->rootmovelist.move[0].value;
+                    if (tbScore >= 0)
+                    {
+                        score = pos->bestmovescore[0] = max(score, tbScore);
+                        beta = max(beta, tbScore);
+                        alpha = min(beta - 1, alpha);
+                    }
+                    else
+                    {
+                        score = pos->bestmovescore[0] = min(score, tbScore);
+                        alpha = min(tbScore, alpha);
+                        beta = max(beta, alpha + 1);
+                    }
+                }
 
-                if (!doPonder || thr->depth < maxdepth)
+                if (en.pondersearch != PONDERING || thr->depth < maxdepth)
                     uciScore(thr, inWindow, nowtime, inWindow == 1 ? pos->bestmovescore[0] : score);
             }
         }
         if (inWindow == 1)
         {
+            if (lastiterationscore > pos->bestmovescore[0] + 10)
+            {
+                // Score decreases; use more thinking time
+                constantRootMoves /= 2;
+#ifdef TDEBUG
+                printf("info string Score descreases... more thinking time at depth %d...\n", thr->depth);
+#endif
+            }
+            lastiterationscore = pos->bestmovescore[0];
+
             // Skip some depths depending on current depth and thread number using Laser's method
             int cycle = thr->index % 16;
             if (thr->index && (thr->depth + cycle) % SkipDepths[cycle] == 0)
                 thr->depth += SkipSize[cycle];
 
             thr->depth++;
-            if (doPonder && en.isPondering() && thr->depth > maxdepth) thr->depth--;  // stay on maxdepth when pondering
+            if (en.pondersearch == PONDERING && thr->depth > maxdepth) thr->depth--;  // stay on maxdepth when pondering
             reportedThisDepth = true;
             constantRootMoves++;
         }
@@ -1302,15 +1384,11 @@ static void search_gen1(searchthread *thr)
             break;
 
         // Pondering; just continue next iteration
-        if (doPonder && en.isPondering())
+        if (en.pondersearch == PONDERING)
             continue;
 
         // early exit in playing mode as there is exactly one possible move
         if (pos->rootmovelist.length == 1 && en.endtime1)
-            break;
-
-        // early exit in TB win/lose position
-        if (pos->tbPosition && abs(score) >= SCORETBWIN - 100)
             break;
 
         // exit if STOPSOON is requested and we're in aspiration window
@@ -1328,7 +1406,7 @@ static void search_gen1(searchthread *thr)
 #ifdef TDEBUG
         if (!en.bStopCount)
             en.t1stop++;
-        printf("info string stop info full iteration / immediate:  %4d /%4d\n", en.t1stop, en.t2stop);
+        printf("info string stop info last movetime: %4.3f    full-it. / immediate:  %4d /%4d\n", (nowtime - en.starttime) / (double)en.frequency, en.t1stop, en.t2stop);
 #endif
         // Output of best move
         searchthread *bestthr = thr;
@@ -1356,7 +1434,7 @@ static void search_gen1(searchthread *thr)
             }
             pos->lastpv[i] = 0;
             pos->bestmove = bestthr->pos.bestmove;
-            if (doPonder) pos->pondermove = bestthr->pos.pondermove;
+            pos->pondermove = bestthr->pos.pondermove;
             pos->bestmovescore[0] = bestthr->pos.bestmovescore[0];
             inWindow = 1;
             //printf("info string different bestmove from helper  lastpv:%x\n", bestthr->pos.lastpv[0]);
@@ -1375,24 +1453,25 @@ static void search_gen1(searchthread *thr)
         {
             // Not enough time to get any bestmove? Fall back to default move
             pos->bestmove = pos->defaultmove;
-            if (doPonder) pos->pondermove.code = 0;
+            pos->pondermove.code = 0;
         }
 
         strBestmove = pos->bestmove.toString();
 
-        if (doPonder)
+        if (!pos->pondermove.code)
         {
-            if (!pos->pondermove.code)
-            {
-                // Get the ponder move from TT
-                pos->playMove(&pos->bestmove);
-                uint16_t pondershort = tp.getMoveCode(pos->hash);
-                pos->pondermove.code = pos->shortMove2FullMove(pondershort);
-                pos->unplayMove(&pos->bestmove);
-            }
-            if (pos->pondermove.code)
-                strPonder = " ponder " + pos->pondermove.toString();
+            // Get the ponder move from TT
+            pos->playMove(&pos->bestmove);
+            uint16_t pondershort = tp.getMoveCode(pos->hash);
+            pos->pondermove.code = pos->shortMove2FullMove(pondershort);
+            pos->unplayMove(&pos->bestmove);
         }
+
+        // Save pondermove in rootposition for time management of following search
+        en.rootposition.pondermove = pos->pondermove;
+
+        if (pos->pondermove.code)
+            strPonder = " ponder " + pos->pondermove.toString();
 
         cout << "bestmove " + strBestmove + strPonder + "\n";
 
@@ -1414,14 +1493,19 @@ void resetEndTime(int constantRootMoves, bool complete)
     int timetouse = (en.isWhite ? en.wtime : en.btime);
     int timeinc = (en.isWhite ? en.winc : en.binc);
     int overhead = en.moveOverhead + 8 * en.Threads;
+    int constance = constantRootMoves * 2 + en.ponderhit * 4;
 
+    // main goal is to let the search stop at endtime1 (full iterations) most times and get only few stops at endtime2 (interrupted iteration)
+    // constance: ponder hit and/or onstance of best move in the last iteration lower the time within a given interval
     if (en.movestogo)
     {
         // should garantee timetouse > 0
-        // stop soon at 0.9...1.9 x average movetime
-        // stop immediately at 1.5...2.5 x average movetime
-        int f1 = max(9, 19 - constantRootMoves * 2);
-        int f2 = max(15, 25 - constantRootMoves * 2);
+        // f1: stop soon after current iteration at 1.0...2.2 x average movetime
+        // f2: stop immediately at 1.9...3.1 x average movetime
+        // movevariation: many moves to go decrease f1 (stop soon)
+        int movevariation = min(32, en.movestogo) * 3 / 32;
+        int f1 = max(10 - movevariation, 22 - movevariation - constance);
+        int f2 = max(19, 31 - constance);
         if (complete)
             en.endtime1 = en.starttime + timetouse * en.frequency * f1 / (en.movestogo + 1) / 10000;
         en.endtime2 = en.starttime + min(max(0, timetouse - overhead * en.movestogo), f2 * timetouse / (en.movestogo + 1) / 10) * en.frequency / 1000;
@@ -1431,20 +1515,20 @@ void resetEndTime(int constantRootMoves, bool complete)
         if (timeinc)
         {
             // sudden death with increment; split the remaining time in (256-phase) timeslots
-            // stop soon after 5..15 timeslot
-            // stop immediately after 15..25 timeslots
-            int f1 = max(5, 15 - constantRootMoves * 2);
-            int f2 = max(15, 25 - constantRootMoves * 2);
+            // f1: stop soon after 5..17 timeslot
+            // f2: stop immediately after 15..27 timeslots
+            int f1 = max(5, 17 - constance);
+            int f2 = max(15, 27 - constance);
             if (complete)
                 en.endtime1 = en.starttime + max(timeinc, f1 * (timetouse + timeinc) / (256 - ph)) * en.frequency / 1000;
             en.endtime2 = en.starttime + min(max(0, timetouse - overhead), max(timeinc, f2 * (timetouse + timeinc) / (256 - ph))) * en.frequency / 1000;
         }
         else {
             // sudden death without increment; play for another x;y moves
-            // stop soon at 1/32...1/42 time slot
-            // stop immediately at 1/12...1/22 time slot
-            int f1 = min(42, 32 + constantRootMoves * 2);
-            int f2 = min(22, 12 + constantRootMoves * 2);
+            // f1: stop soon at 1/30...1/42 time slot
+            // f2: stop immediately at 1/10...1/22 time slot
+            int f1 = min(42, 30 + constance);
+            int f2 = min(22, 10 + constance);
             if (complete)
                 en.endtime1 = en.starttime + timetouse / f1 * en.frequency / 1000;
             en.endtime2 = en.starttime + min(max(0, timetouse - overhead), timetouse / f2) * en.frequency / 1000;
@@ -1482,12 +1566,9 @@ void searchStart()
     // increment generation counter for tt aging
     tp.nextSearch();
 
-    if (en.MultiPV == 1 && !en.ponder)
+    if (en.MultiPV == 1)
         for (int tnum = 0; tnum < en.Threads; tnum++)
             en.sthread[tnum].thr = thread(&search_gen1<SinglePVSearch>, &en.sthread[tnum]);
-    else if (en.ponder)
-        for (int tnum = 0; tnum < en.Threads; tnum++)
-            en.sthread[tnum].thr = thread(&search_gen1<PonderSearch>, &en.sthread[tnum]);
     else
         for (int tnum = 0; tnum < en.Threads; tnum++)
             en.sthread[tnum].thr = thread(&search_gen1<MultiPVSearch>, &en.sthread[tnum]);
@@ -1514,15 +1595,15 @@ inline void chessposition::CheckForImmediateStop()
     if (threadindex || (nodes & NODESPERCHECK))
         return;
 
-    if (en.isPondering())
+    if (en.pondersearch == PONDERING)
         // pondering... just continue searching
         return;
 
-    if (en.testPonderHit())
+    if (en.pondersearch == HITPONDER)
     {
         // ponderhit
         startSearchTime(false);
-        en.resetPonder();
+        en.pondersearch = NO;
         return;
     }
 
@@ -1609,8 +1690,9 @@ void search_statistics()
     printf("(ST) Reduct.  %12lld   lmr[0]: %4.2f   lmr[1]: %4.2f   lmr: %4.2f   hist: %4.2f   pv: %4.2f   corr: %4.2f   total: %4.2f\n", red_n, f10, f11, f1, f2, f3, f4, f5);
 
     f0 = 100.0 * statistics.extend_singular / (double)n;
-    printf("(ST) Extensions: %%singular: %7.4f\n", f0);
-
+    f1 = 100.0 * statistics.extend_endgame / (double)n;
+    f2 = 100.0 * statistics.extend_history / (double)n;
+    printf("(ST) Extensions: %%singular: %7.4f   %%endgame: %7.4f   %%history: %7.4f\n", f0, f1, f2);
     printf("(ST)==================================================================================================================================================\n");
 }
 #endif

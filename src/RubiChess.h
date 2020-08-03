@@ -288,7 +288,7 @@ public:
 #define EVAL(e, f) ((e).addGrad(f), (e) * (f))
 #define SQVALUE(i, v) eval(2, i, v)
 #define SQEVAL(e, f, s) ((e).addGrad(f, s), (e) * (f))
-#define SQRESULT(v,s) ( v > 0 ? ((int32_t)((uint32_t)((v) * (v) * S2MSIGN(s) / 2048) << 16) + ((v) * S2MSIGN(s) / 16)) : 0 )
+#define SQRESULT(v,s) ( v > 0 ? ((int32_t)((uint32_t)((((v) * (v)) & 0xffffff) * S2MSIGN(s) / 2048) << 16) + ((v) * S2MSIGN(s) / 16)) : 0 )
 #define CVALUE(v) eval(v)
 #define CEVAL(e, f) ((e).addGrad(f), (e) * (f))
 #define EVALUE(v) eval(3, 0, v)
@@ -299,7 +299,7 @@ public:
 #define VALUE(m, e) ((int32_t)((uint32_t)(m) << 16) + (e))
 #define EVAL(e, f) ((e) * (f))
 #define SQEVAL(e, f, s) ((e) * (f))
-#define SQRESULT(v,s) ( v > 0 ? VALUE((v) * (v) * S2MSIGN(s) / 2048, (v) * S2MSIGN(s) / 16) : 0 )
+#define SQRESULT(v,s) ( v > 0 ? VALUE((((v) * (v)) & 0xffffff) * S2MSIGN(s) / 2048, (v) * S2MSIGN(s) / 16) : 0 )
 #define CVALUE(v) (v)
 #define CEVAL(e, f) ((e) * (f))
 #define EVALUE(e) VALUE(0, e)
@@ -371,7 +371,10 @@ struct evalparamset {
         {  VALUE(   0,   0), VALUE( -43,   9), VALUE( -15,  17), VALUE(   0,  31), VALUE(  33,  31), VALUE(  71,  95), VALUE(   0,   0), VALUE(   0,   0)  }
     };
     eval eAttackingpawnbonus[8] = {  VALUE(   0,   0), VALUE( -32,  12), VALUE( -22, -12), VALUE(  -6,  -6), VALUE( -12,  -6), VALUE( -13,  -2), VALUE(   0,   0), VALUE(   0,   0)  };
-    eval eIsolatedpawnpenalty[8] = {  VALUE( -10,  -5), VALUE( -10,  -6), VALUE( -16, -12), VALUE( -22, -12), VALUE( -26, -12), VALUE( -13, -11), VALUE(  -8, -10), VALUE( -15,  -3)  };
+    eval eIsolatedpawnpenalty[2][8] = {
+        {  VALUE( -15,  -1), VALUE( -19,   6), VALUE( -23, -10), VALUE( -28, -14), VALUE( -34, -12), VALUE( -22, -13), VALUE( -21,   1), VALUE( -20,   6)  },
+        {  VALUE( -10,  -5), VALUE( -11,  -7), VALUE( -15, -10), VALUE( -13,  -7), VALUE( -17,  -3), VALUE(  -7, -12), VALUE(  -4, -15), VALUE( -14,  -4)  }
+    };
     eval eDoublepawnpenalty =  VALUE( -11, -23);
     eval eConnectedbonus[6][6] = {
         {  VALUE(   0,   0), VALUE(  10,  -2), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0), VALUE(   0,   0)  },
@@ -381,7 +384,10 @@ struct evalparamset {
         {  VALUE(   0,   0), VALUE(  72,  98), VALUE(  53,  54), VALUE(  72,  80), VALUE(  35,  86), VALUE( -57, 253)  },
         {  VALUE(   0,   0), VALUE(  38, 241), VALUE( 130, 110), VALUE(   7, 400), VALUE(   0, 641), VALUE(   0,   0)  }
     };
-    eval eBackwardpawnpenalty[8] = {  VALUE(  -2, -12), VALUE(  -6, -11), VALUE( -16, -11), VALUE( -15, -11), VALUE( -20, -11), VALUE( -18,  -8), VALUE( -16,  -7), VALUE( -15,  -3)  };
+    eval eBackwardpawnpenalty[2][8] = {
+        {  VALUE(   1, -19), VALUE( -18, -15), VALUE( -27, -11), VALUE( -39, -11), VALUE( -45, -10), VALUE( -38,  -6), VALUE( -30,  -7), VALUE(  -9,  -2)  },
+        {  VALUE(  -2,  -5), VALUE(  -3,  -5), VALUE( -12,  -5), VALUE(  -2,  -9), VALUE(  -4,  -6), VALUE(  -9,  -8), VALUE( -11,  -7), VALUE( -14,  -4)  }
+    };
     eval eDoublebishopbonus =  VALUE(  56,  38);
     eval ePawnblocksbishoppenalty =  VALUE( -10, -18);
     eval eBishopcentercontrolbonus =  VALUE(  25,  13);
@@ -405,6 +411,9 @@ struct evalparamset {
            VALUE(  69, 264), VALUE( 108, 231), VALUE( 107, 230), VALUE( 114, 198)  }
     };
     eval eRookon7thbonus =  VALUE(  -1,  22);
+    eval eRookonkingarea =  VALUE(   7,  -6);
+    eval eBishoponkingarea =  VALUE(  10,   2);
+    eval eQueenattackedbysliderpenalty =  VALUE( -30,  17);
     eval eMinorbehindpawn[6] = {  VALUE(   1,  14), VALUE(  12,  10), VALUE(  15,  11), VALUE(  24,   9), VALUE(  37,  11), VALUE(  89, 110)  };
     eval eSlideronfreefilebonus[2] = {  VALUE(  21,   7), VALUE(  43,   1)  };
     eval eMaterialvalue[7] = {  VALUE(   0,   0), VALUE( 100, 100), VALUE( 314, 314), VALUE( 314, 314), VALUE( 483, 483), VALUE( 913, 913), VALUE(   0,   0)  };
@@ -568,14 +577,19 @@ typedef struct ranctx { u8 a; u8 b; u8 c; u8 d; } ranctx;
 
 #define rot(x,k) (((x)<<(k))|((x)>>(64-(k))))
 
+#define BOUNDMASK   0x03 
+#define HASHALPHA   0x01
+#define HASHBETA    0x02
+#define HASHEXACT   0x00
+
 class zobrist
 {
 public:
-    ranctx rnd;
     unsigned long long boardtable[64 * 16];
     unsigned long long cstl[32];
     unsigned long long ept[64];
     unsigned long long s2m;
+    ranctx rnd;
     zobrist();
     unsigned long long getRnd();
     u8 getHash(chessposition *pos);
@@ -600,6 +614,11 @@ struct transpositionentry {
 struct transpositioncluster {
     transpositionentry entry[TTBUCKETNUM];
     uint8_t padding[(64 - sizeof(transpositionentry) * TTBUCKETNUM) % 16];
+#ifdef SDEBUG
+    U64 debugHash;
+    int debugIndex;
+    string debugStoredBy;
+#endif
 };
 
 
@@ -622,6 +641,27 @@ public:
     uint16_t getMoveCode(U64 hash);
     unsigned int getUsedinPermill();
     void nextSearch() { numOfSearchShiftTwo = (numOfSearchShiftTwo + 4) & 0xfc; }
+#ifdef SDEBUG
+    void markDebugSlot(U64 h, int i) {
+        table[h & sizemask].debugHash = h; table[h & sizemask].debugIndex = i;
+    }
+    int isDebugPosition(U64 h) { return (h != table[h & sizemask].debugHash) ? -1 : table[h & sizemask].debugIndex; }
+    string debugGetPv(U64 h) {
+        transpositioncluster* data = &table[h & sizemask];
+        for (int i = 0; i < TTBUCKETNUM; i++)
+        {
+            transpositionentry *e = &(data->entry[i]);
+            if (e->hashupper == GETHASHUPPER(h))
+                return "Depth=" + to_string(e->depth) + " Value=" + to_string(e->value) + "(" + to_string(e->boundAndAge & BOUNDMASK) + ")  pv=" + data->debugStoredBy;
+        }
+        return "";
+    }
+    void debugSetPv(U64 h, string s) {
+        U64 i = h & sizemask;
+        if (table[i].debugHash != h) return;
+        table[i].debugStoredBy = s;
+    }
+#endif
 };
 
 
@@ -640,10 +680,9 @@ class Pawnhash
 {
 public:
     S_PAWNHASHENTRY *table;
-    U64 size;
     U64 sizemask;
-    Pawnhash(int sizeMb);
-    ~Pawnhash();
+    void setSize(int sizeMb);
+    void remove();
     bool probeHash(U64 hash, pawnhashentry **entry);
 };
 
@@ -665,8 +704,8 @@ class Materialhash
 {
 public:
     Materialhashentry *table;
-    Materialhash();
-    ~Materialhash();
+    void init();
+    void remove();
     bool probeHash(U64 hash, Materialhashentry **entry);
 };
 
@@ -729,14 +768,11 @@ const int KCMASK[2] = { WKCMASK, BKCMASK };
 const int castlerookto[4] = { 3, 5, 59, 61 };
 const int castlekingto[4] = { 2, 6, 58, 62 };
 
-#define BOUNDMASK 0x03 
-#define HASHALPHA 0x01
-#define HASHBETA 0x02
-#define HASHEXACT 0x00
-
 #define MAXDEPTH 256
+#define MOVESTACKRESERVE 48     // to avoid checking for height reaching MAXDEPTH in probe_wds and getQuiescence
+
 #define NOSCORE SHRT_MIN
-#define SCOREBLACKWINS (SHRT_MIN + 3 + MAXDEPTH)
+#define SCOREBLACKWINS (SHRT_MIN + 3 + 2 * MAXDEPTH)
 #define SCOREWHITEWINS (-SCOREBLACKWINS)
 #define SCOREDRAW 0
 #define SCORETBWIN 29900
@@ -919,8 +955,7 @@ struct chessmovestack
     U64 kingPinned;
 };
 
-#define MAXMOVELISTLENGTH 256	// for lists of possible pseudo-legal moves
-#define MAXMOVESEQUENCELENGTH 512	// for move sequences in a game
+#define MAXMOVELISTLENGTH 256   // for lists of possible pseudo-legal moves
 
 
 class chessmove
@@ -955,19 +990,6 @@ public:
 #define MAXTHREADS  256
 #define MAXHASH     0x100000  // 1TB ... never tested
 #define DEFAULTHASH 16
-
-
-// FIXME: This is ugly! Almost the same classes with doubled code.
-class chessmovesequencelist
-{
-public:
-	int length;
-	chessmove move[MAXMOVESEQUENCELENGTH];
-	chessmovesequencelist();
-	string toString();
-	void print();
-};
-
 
 class chessmovelist
 {
@@ -1037,7 +1059,7 @@ extern U64 mBishopAttacks[64][1 << BISHOPINDEXBITS];
 extern U64 mRookAttacks[64][1 << ROOKINDEXBITS];
 
 enum MoveType { QUIET = 1, CAPTURE = 2, PROMOTE = 4, TACTICAL = 6, ALL = 7 };
-enum RootsearchType { SinglePVSearch, MultiPVSearch, PonderSearch };
+enum RootsearchType { SinglePVSearch, MultiPVSearch };
 
 int CreateEvasionMovelist(chessposition *pos, chessmove* mstart);
 template <MoveType Mt> int CreateMovelist(chessposition *pos, chessmove* mstart);
@@ -1062,12 +1084,17 @@ enum PvAbortType {
     PVA_FUTILITYPRUNED, PVA_SEEPRUNED, PVA_BADHISTORYPRUNED, PVA_MULTICUT, PVA_BESTMOVE, PVA_NOTBESTMOVE, PVA_OMITTED, PVA_BETACUT, PVA_BELOWALPHA }; 
 #endif
 
+// Replace the occupied bitboards with the first two so far unused piece bitboards
+#define occupied00 piece00
+
 class chessposition
 {
 public:
     U64 nodes;
+    int mstop;      // 0 at last non-reversible move before root, rootheight at root position
+    int ply;        // 0 at root position
+
     U64 piece00[14];
-    U64 occupied00[2];
     U64 attackedBy2[2];
     U64 attackedBy[2][7];
 
@@ -1086,11 +1113,10 @@ public:
     U64 kingPinned;
 
     uint8_t mailbox[BOARDSIZE]; // redundand for faster "which piece is on field x"
-    chessmovestack movestack[MAXMOVESEQUENCELENGTH];
-    uint16_t excludemovestack[MAXMOVESEQUENCELENGTH];
-    int16_t staticevalstack[MAXMOVESEQUENCELENGTH];
-    int mstop;      // 0 at last non-reversible move before root, rootheight at root position
-    int ply;        // 0 at root position
+    chessmovestack movestack[MAXDEPTH];
+    uint16_t excludemovestack[MAXDEPTH];
+    int16_t staticevalstack[MAXDEPTH];
+
     int rootheight; // fixed stack offset in root position 
     int seldepth;
     int nullmoveside;
@@ -1103,16 +1129,21 @@ public:
     int LegalMoves[MAXDEPTH];
     uint32_t killer[MAXDEPTH][2];
     uint32_t bestFailingLow;
-    Pawnhash *pwnhsh;
     int threadindex;
     int psqval;
 #ifdef SDEBUG
     unsigned long long debughash = 0;
-    uint16_t pvdebug[MAXMOVESEQUENCELENGTH];
-    int pvdepth[MAXMOVESEQUENCELENGTH];
-    int pvmovenum[MAXMOVESEQUENCELENGTH];
-    PvAbortType pvaborttype[MAXMOVESEQUENCELENGTH];
-    int pvabortval[MAXMOVESEQUENCELENGTH];
+    struct {
+        uint32_t code;
+        U64 hash;
+    } pvdebug[MAXDEPTH];
+    int pvalpha[MAXDEPTH];
+    int pvbeta[MAXDEPTH];
+    int pvdepth[MAXDEPTH];
+    int pvmovenum[MAXDEPTH];
+    PvAbortType pvaborttype[MAXDEPTH];
+    int pvabortval[MAXDEPTH];
+    string pvadditionalinfo[MAXDEPTH];
 #endif
     uint32_t pvtable[MAXDEPTH][MAXDEPTH];
     uint32_t multipvtable[MAXMULTIPV][MAXDEPTH];
@@ -1143,7 +1174,11 @@ public:
     int16_t capturehistory[14][64];
     int16_t counterhistory[14][64][14 * 64];
     uint32_t countermove[14][64];
+    int he_threshold;
+    U64 he_yes;
+    U64 he_all;
     Materialhash mtrlhsh;
+    Pawnhash pwnhsh;
 
     bool w2m();
     void BitboardSet(int index, PieceCode p);
@@ -1152,7 +1187,7 @@ public:
     void BitboardPrint(U64 b);
     int getFromFen(const char* sFen);
     string toFen();
-    bool applyMove(string s);
+    uint32_t applyMove(string s, bool resetMstop = true);
     void print(ostream* os = &cout);
     int phase();
     U64 movesTo(PieceCode pc, int from);
@@ -1171,7 +1206,8 @@ public:
     void unplayMove(chessmove *cm);
     void playNullMove();
     void unplayNullMove();
-    void updatePins();
+    template <int Me> void updatePins();
+    template <int Me> bool sliderAttacked(int index, U64 occ);
     bool moveGivesCheck(uint32_t c);  // simple and imperfect as it doesn't handle special moves and cases (mainly to avoid pruning of important moves)
     bool moveIsPseudoLegal(uint32_t c);     // test if move is possible in current position
     uint32_t shortMove2FullMove(uint16_t c); // transfer movecode from tt to full move code without checking if pseudoLegal
@@ -1184,7 +1220,7 @@ public:
     void getScaling(Materialhashentry *mhentry);
     int getComplexity(int eval, pawnhashentry *phentry, Materialhashentry *mhentry);
 
-    template <RootsearchType RT> int rootsearch(int alpha, int beta, int depth);
+    template <RootsearchType RT> int rootsearch(int alpha, int beta, int depth, int inWindowLast);
     int alphabeta(int alpha, int beta, int depth);
     int getQuiescence(int alpha, int beta, int depth);
     void updateHistory(uint32_t code, int16_t **cmptr, int value);
@@ -1265,6 +1301,7 @@ typedef map<string, ucioption_t>::iterator optionmapiterator;
 #define ENGINETERMINATEDSEARCH 3
 
 #define NODESPERCHECK 0xfff
+enum ponderstate_t { NO, PONDERING, HITPONDER };
 
 class engine
 {
@@ -1298,8 +1335,10 @@ public:
     int SyzygyProbeLimit;
     chessposition rootposition;
     int Threads;
+    int oldThreads;
     searchthread *sthread;
-    enum { NO, PONDERING, HITPONDER } pondersearch;
+    ponderstate_t pondersearch;
+    bool ponderhit;
     int terminationscore = SHRT_MAX;
     int lastReport;
     int benchdepth;
@@ -1325,12 +1364,7 @@ public:
     void send(const char* format, ...);
     void communicate(string inputstring);
     void allocThreads();
-    void allocPawnhash();
     U64 getTotalNodes();
-    bool isPondering() { return (pondersearch == PONDERING); }
-    void HitPonder() { pondersearch = HITPONDER; }
-    bool testPonderHit() { return (pondersearch == HITPONDER); }
-    void resetPonder() { pondersearch = NO; }
     long long perft(int depth, bool dotests);
     void prepareThreads();
     void resetStats();
@@ -1374,15 +1408,15 @@ class searchthread
 {
 public:
     chessposition pos;
-    Pawnhash *pwnhsh;
     thread thr;
     int index;
     int depth;
     int numofthreads;
     int lastCompleteDepth;
+    // adjust padding to align searchthread at 64 bytes
+    uint8_t padding[16];
+
     searchthread *searchthreads;
-    searchthread();
-    ~searchthread();
 };
 
 void searchStart();
@@ -1445,7 +1479,9 @@ struct statistic {
     S64 red_pv;                 // total reduction by pv nodes
     S64 red_correction;         // total reduction correction by over-/underflow
 
-    U64 extend_singular;        // total extended moves
+    U64 extend_singular;        // total singular extensions
+    U64 extend_endgame;        // total endgame extensions
+    U64 extend_history;        // total history extensions
 };
 
 extern struct statistic statistics;

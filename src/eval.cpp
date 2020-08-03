@@ -180,20 +180,21 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     for (i = 0; i < 8; i++)
         registertuner(pos, &eps.eAttackingpawnbonus[i], "eAttackingpawnbonus", i, 8, 0, 0, tuneIt && (i > 0 && i < 7));
-    tuneIt = true;
-    for (i = 0; i < 8; i++)
-        registertuner(pos, &eps.eIsolatedpawnpenalty[i], "eIsolatedpawnpenalty", i, 8, 0, 0, tuneIt);
+    tuneIt = false;
+    for (i = 0; i < 2; i++)
+        for (j = 0; j < 8; j++)
+            registertuner(pos, &eps.eIsolatedpawnpenalty[i][j], "eIsolatedpawnpenalty", j, 8, i, 2, tuneIt);
     tuneIt = false;
     registertuner(pos, &eps.eDoublepawnpenalty, "eDoublepawnpenalty", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
     for (i = 0; i < 6; i++)
         for (j = 0; j < 6; j++)
             registertuner(pos, &eps.eConnectedbonus[i][j], "eConnectedbonus", j, 6, i, 6, tuneIt);
-    tuneIt = false;
 
-    tuneIt = true;
-    for (i = 0; i < 8; i++)
-        registertuner(pos, &eps.eBackwardpawnpenalty[i], "eBackwardpawnpenalty", i, 8, 0, 0, tuneIt);
+    tuneIt = false;
+    for (i = 0; i < 2; i++)
+        for (j = 0; j < 8; j++)
+            registertuner(pos, &eps.eBackwardpawnpenalty[i][j], "eBackwardpawnpenalty", j, 8, i, 2, tuneIt);
     tuneIt = false;
     registertuner(pos, &eps.eDoublebishopbonus, "eDoublebishopbonus", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
@@ -210,13 +211,21 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
 
+    tuneIt = true;
+    registertuner(pos, &eps.eRookonkingarea, "eRookonkingarea", 0, 0, 0, 0, tuneIt);
+    registertuner(pos, &eps.eBishoponkingarea, "eBishoponkingarea", 0, 0, 0, 0, tuneIt);
+
+    tuneIt = false;
+    registertuner(pos, &eps.eQueenattackedbysliderpenalty, "eQueenattackedbysliderpenalty", 0, 0, 0, 0, tuneIt);
+
     tuneIt = false;
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eMinorbehindpawn[i], "eMinorbehindpawn", i, 6, 0, 0, tuneIt);
 
-    tuneIt = false;
+    tuneIt = true;
     for (i = 0; i < 2; i++)
         registertuner(pos, &eps.eSlideronfreefilebonus[i], "eSlideronfreefilebonus", i, 2, 0, 0, tuneIt);
+    tuneIt = false;
     for (i = 0; i < 7; i++)
         registertuner(pos, &eps.eMaterialvalue[i], "eMaterialvalue", i, 7, 0, 0, false);
     registertuner(pos, &eps.eKingshieldbonus, "eKingshieldbonus", 0, 0, 0, 0, tuneIt);
@@ -389,6 +398,7 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
         entryptr->semiopen[Me] &= (int)(~BITSET(FILE(index)));
 
         U64 yourStoppers = passedPawnMask[index][Me] & yourPawns;
+        U64 yourOpponents = yourStoppers & fileMask[index];
         if (!yourStoppers)
         {
             // passed pawn
@@ -423,8 +433,9 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
         {
             // isolated pawn penalty per file
             int f = FILE(index);
-            entryptr->value += EVAL(eps.eIsolatedpawnpenalty[f], S2MSIGN(Me));
-            if (bTrace) te.pawns[Me] += EVAL(eps.eIsolatedpawnpenalty[f], S2MSIGN(Me));
+            bool opposed = (bool)yourOpponents;
+            entryptr->value += EVAL(eps.eIsolatedpawnpenalty[opposed][f], S2MSIGN(Me));
+            if (bTrace) te.pawns[Me] += EVAL(eps.eIsolatedpawnpenalty[opposed][f], S2MSIGN(Me));
         }
         else
         {
@@ -453,9 +464,10 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
                     if ((nextpawnrank | (shiftneigbours & neighbourfilesMask[index])) & yourStoppers)
                     {
                         // backward pawn penalty per file
+                        bool opposed = (bool)yourOpponents;
                         int f = FILE(index);
-                        entryptr->value += EVAL(eps.eBackwardpawnpenalty[f], S2MSIGN(Me));
-                        if (bTrace) te.pawns[Me] += EVAL(eps.eBackwardpawnpenalty[f], S2MSIGN(Me));
+                        entryptr->value += EVAL(eps.eBackwardpawnpenalty[opposed][f], S2MSIGN(Me));
+                        if (bTrace) te.pawns[Me] += EVAL(eps.eBackwardpawnpenalty[opposed][f], S2MSIGN(Me));
                     }
                 }
             }
@@ -500,7 +512,7 @@ void chessposition::getPawnAndKingEval(pawnhashentry *entryptr)
             myDist = abs(RANK(nextPawn) - kr);
         }
 
-        bool isBlocked = (myDist != 7 && (myDist == yourDist - 1));
+        bool isBlocked = (myDist == yourDist - 1);
         if (isBlocked) {
             entryptr->value += EVAL(eps.ePawnstormblocked[BORDERDIST(f)][yourDist], S2MSIGN(Me));
             if (bTrace) te.kingattackpower[Me] += EVAL(eps.ePawnstormblocked[BORDERDIST(f)][yourDist], S2MSIGN(Me));
@@ -523,6 +535,8 @@ int chessposition::getPieceEval(positioneval *pe)
     U64 pb = piece00[pc];
     int index;
     const U64 myRammedPawns = piece00[WPAWN | Me] & PAWNPUSH(You, piece00[WPAWN | You]);
+    U64 occupied = occupied00[0] | occupied00[1];
+    U64 kingdangerarea = kingdangerMask[kingpos[You]][You];
 
     while (pb)
     {
@@ -530,7 +544,6 @@ int chessposition::getPieceEval(positioneval *pe)
         U64 attack = 0ULL;
         if (Pt == ROOK || Pt == QUEEN)
         {
-            U64 occupied = occupied00[0] | occupied00[1];
             U64 xrayrookoccupied = occupied ^ (piece00[WROOK + Me] | piece00[WQUEEN + Me]);
             attack = ROOKATTACKS(xrayrookoccupied, index);
 
@@ -539,11 +552,16 @@ int chessposition::getPieceEval(positioneval *pe)
                 result += EVAL(eps.eSlideronfreefilebonus[bool(pe->phentry->semiopen[You] & BITSET(FILE(index)))], S2MSIGN(Me));
                 if (bTrace) te.rooks[Me] += EVAL(eps.eSlideronfreefilebonus[bool(pe->phentry->semiopen[You] & BITSET(FILE(index)))], S2MSIGN(Me));
             }
+
+            // extrabonus for rook targeting the kingdanger area
+            if (Pt == ROOK && (fileMask[index] & kingdangerarea)) {
+                result += EVAL(eps.eRookonkingarea, S2MSIGN(Me));
+                if (bTrace) te.rooks[Me] += EVAL(eps.eRookonkingarea, S2MSIGN(Me));
+            }
         }
 
         if (Pt == BISHOP || Pt == QUEEN)
         {
-            U64 occupied = occupied00[0] | occupied00[1];
             U64 xraybishopoccupied = occupied ^ (piece00[WBISHOP + Me] | piece00[WQUEEN + Me]);
             attack |= BISHOPATTACKS(xraybishopoccupied, index);
 
@@ -558,7 +576,18 @@ int chessposition::getPieceEval(positioneval *pe)
                     result += EVAL(eps.eBishopcentercontrolbonus, S2MSIGN(Me));
                     if (bTrace) te.minors[Me] += EVAL(eps.eBishopcentercontrolbonus, S2MSIGN(Me));
                 }
+                // extrabonus for rook targeting the kingdanger area
+                if ((BISHOPATTACKS(piece00[WPAWN] | piece00[BPAWN], index) & kingdangerarea)) {
+                    result += EVAL(eps.eBishoponkingarea, S2MSIGN(Me));
+                    if (bTrace) te.minors[Me] += EVAL(eps.eBishoponkingarea, S2MSIGN(Me));
+                }
             }
+        }
+
+        if (Pt == QUEEN && sliderAttacked<Me>(index, occupied))
+        {
+            result += EVAL(eps.eQueenattackedbysliderpenalty, S2MSIGN(Me));
+            if (bTrace) te.mobility[Me] += EVAL(eps.eQueenattackedbysliderpenalty, S2MSIGN(Me));
         }
 
         if (Pt == KNIGHT)
@@ -601,7 +630,6 @@ int chessposition::getPieceEval(positioneval *pe)
         }
 
         // king danger
-        U64 kingdangerarea = kingdangerMask[kingpos[You]][You];
         if (mobility & kingdangerarea)
         {
             pe->kingringattacks[Me] += POPCOUNT(mobility & kingdangerarea);
@@ -770,7 +798,7 @@ int chessposition::getEval()
         return score;
     }
 
-    hashexist = pwnhsh->probeHash(pawnhash, &pe.phentry);
+    hashexist = pwnhsh.probeHash(pawnhash, &pe.phentry);
     if (bTrace || !hashexist)
     {
         if (bTrace) pe.phentry->value = 0;
