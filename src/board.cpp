@@ -487,7 +487,7 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
             PieceCode capture = GETCAPTURE(mc);
             int to = GETTO(mc);
             //ml->move[i].value = mvv[capture >> 1] - piece;
-            ml->move[i].value = (mvv[capture >> 1] - piece) * 4 + pos->capturehistory[capture][to];
+            ml->move[i].value = (mvv[capture >> 1] - piece) * 4 + pos->capturehistory[capture][piece >> 1][to];
             PieceType pt = (GETPROMOTION(mc) >> 1);
             if (pt == QUEEN)
                 ml->move[i].value += mvv[QUEEN] - mvv[PAWN];
