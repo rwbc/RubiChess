@@ -108,8 +108,8 @@ inline void chessposition::updateCaptureHistory(uint32_t code, int value)
 {
     int pc = GETCAPTURE(code);
     int to = GETCORRECTTO(code);
-    value = max(-256, min(256, value));
-    int delta = 32 * value - capturehistory[pc][to] * abs(value) / 256;
+    value = max(-HISTORYMAXDEPTH * HISTORYMAXDEPTH, min(HISTORYMAXDEPTH * HISTORYMAXDEPTH, value));
+    int delta = value * (1 << HISTORYNEWSHIFT) - capturehistory[pc][to] * abs(value) / (1 << HISTORYAGESHIFT);
     capturehistory[pc][to] += delta;
 }
 
