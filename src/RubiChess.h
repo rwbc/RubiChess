@@ -799,7 +799,8 @@ const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 2
 #define PVVAL (7 << 27)
 #define KILLERVAL1 (1 << 26)
 #define KILLERVAL2 (KILLERVAL1 - 1)
-#define NMREFUTEVAL (1 << 25)
+#define BADCAPTUREVAL (MININT / 2)
+//#define NMREFUTEVAL (1 << 25)
 #define BADTACTICALFLAG (1 << 31)
 
 

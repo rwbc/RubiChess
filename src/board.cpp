@@ -526,7 +526,8 @@ void chessposition::getRootMoves()
     excludemovestack[0] = 0; // FIXME: Not very nice; is it worth to do do singular testing in root search?
     for (int i = 0; i < movelist.length; i++)
     {
-        if (playMove(&movelist.move[i]))
+        chessmove* m = &movelist.move[i];
+        if (playMove(m))
         {
             if (tthit)
             {
@@ -535,9 +536,9 @@ void chessposition::getRootMoves()
                 {
                     // This move triggers 3fold; remember move to update hash
                     bImmediate3fold = true;
-                    moveTo3fold = movelist.move[i].code;
+                    moveTo3fold = m->code;
                 }
-                else if ((uint16_t)movelist.move[i].code == tthashmovecode)
+                else if ((uint16_t)m->code == tthashmovecode)
                 {
                     // Test if this move makes a 3fold possible for opponent
                     prepareStack();
@@ -545,24 +546,28 @@ void chessposition::getRootMoves()
                     followupmovelist.length = CreateMovelist<ALL>(this, &followupmovelist.move[0]);
                     for (int j = 0; j < followupmovelist.length; j++)
                     {
-                        if (playMove(&followupmovelist.move[j]))
+                        chessmove* fm = &followupmovelist.move[j];
+                        if (playMove(fm))
                         {
                             if (testRepetiton() >= 2)
                                 // 3fold for opponent is possible
-                                moveTo3fold = movelist.move[i].code;
+                                moveTo3fold = m->code;
 
-                            unplayMove(&followupmovelist.move[j]);
+                            unplayMove(fm);
                         }
                     }
                 }
             }
 
-            rootmovelist.move[rootmovelist.length++] = movelist.move[i];
-            unplayMove(&movelist.move[i]);
-            if (bestval < movelist.move[i].value)
+            unplayMove(m);
+
+            if (!see(m->code, 0))
+                m->value += BADCAPTUREVAL;
+            rootmovelist.move[rootmovelist.length++] = *m;
+            if (bestval < m->value)
             {
-                defaultmove = movelist.move[i];
-                bestval = movelist.move[i].value;
+                defaultmove = *m;
+                bestval = m->value;
             }
         }
     }
