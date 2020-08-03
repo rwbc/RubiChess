@@ -794,8 +794,8 @@ extern int psqtable[14][64];
 extern evalparamset eps;
 
 // values for move ordering
-const int mvv[] = { 0U << 27, 1U << 27, 2U << 27, 2U << 27, 3U << 27, 4U << 27, 5U << 27 };
-const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 24 };
+const int mvv[] = { 0, 100, 300, 320, 500, 900, 32000 };  // just some rough guessing for ordering moves
+//const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 24 };
 #define PVVAL (7 << 27)
 #define KILLERVAL1 (1 << 26)
 #define KILLERVAL2 (KILLERVAL1 - 1)

@@ -486,8 +486,11 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
         {
             PieceCode capture = GETCAPTURE(mc);
             int to = GETTO(mc);
-            //ml->move[i].value = (mvv[capture >> 1] | lva[piece >> 1]);
-            ml->move[i].value = materialvalue[capture >> 1] * 2 + pos->capturehistory[capture][to];
+            //ml->move[i].value = mvv[capture >> 1] - piece;
+            ml->move[i].value = (mvv[capture >> 1] - piece) * 4 + pos->capturehistory[capture][to];
+            PieceType pt = (GETPROMOTION(mc) >> 1);
+            if (pt == QUEEN)
+                ml->move[i].value += mvv[QUEEN] - mvv[PAWN];
         }
         if (Mt == QUIET || (Mt == ALL && !GETCAPTURE(mc)))
         {
@@ -502,8 +505,6 @@ void evaluateMoves(chessmovelist *ml, chessposition *pos, int16_t **cmptr)
             }
 
         }
-        if (GETPROMOTION(mc))
-            ml->move[i].value += mvv[GETPROMOTION(mc) >> 1] - mvv[PAWN];
     }
 }
 

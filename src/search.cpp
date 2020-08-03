@@ -107,7 +107,7 @@ inline void chessposition::updateHistory(uint32_t code, int16_t **cmptr, int val
 inline void chessposition::updateCaptureHistory(uint32_t code, int value)
 {
     int pc = GETCAPTURE(code);
-    int to = GETCORRECTTO(code);
+    int to = GETTO(code);
     value = max(-HISTORYMAXDEPTH * HISTORYMAXDEPTH, min(HISTORYMAXDEPTH * HISTORYMAXDEPTH, value));
     int delta = value * (1 << HISTORYNEWSHIFT) - capturehistory[pc][to] * abs(value) / (1 << HISTORYAGESHIFT);
     capturehistory[pc][to] += delta;
@@ -923,7 +923,8 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
             else if (killer[0][1] == m->code)
                 m->value = KILLERVAL2;
             else if (GETCAPTURE(m->code) != BLANK)
-                m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]);
+                //m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]);
+                m->value = ((mvv[GETCAPTURE(m->code) >> 1] - GETPIECE(m->code)) * 4 + capturehistory[GETCAPTURE(m->code)][GETTO(m->code)]) << 16;
             else 
                 m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];
         }
