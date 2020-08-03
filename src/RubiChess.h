@@ -797,9 +797,12 @@ extern evalparamset eps;
 const int mvv[] = { 0, 100, 300, 320, 500, 900, 32000 };  // just some rough guessing for ordering moves
 //const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 24 };
 #define PVVAL (7 << 27)
-#define KILLERVAL1 (1 << 26)
-#define KILLERVAL2 (KILLERVAL1 - 1)
-#define NMREFUTEVAL (1 << 25)
+//#define KILLERVAL1 (1 << 26)
+#define KILLERVAL1  0x8002
+#define KILLERVAL2  0x8001
+#define BESTFAILVAL 0x8000
+//#define KILLERVAL2 (KILLERVAL1 - 1)
+//#define NMREFUTEVAL (1 << 25)
 #define BADTACTICALFLAG (1 << 31)
 
 

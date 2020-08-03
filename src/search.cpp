@@ -917,7 +917,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
             if (hashmovecode == (m->code & 0xffff))
                 m->value = PVVAL;
             else if (bestFailingLow == m->code)
-                m->value = KILLERVAL2 - 1;
+                m->value = BESTFAILVAL;
             // killermoves gets score better than non-capture
             else if (killer[0][0] == m->code)
                 m->value = KILLERVAL1;
@@ -925,7 +925,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
                 m->value = KILLERVAL2;
             else if (GETCAPTURE(m->code) != BLANK)
                 //m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]);
-                m->value = ((mvv[GETCAPTURE(m->code) >> 1] - GETPIECE(m->code)) * 4 + capturehistory[GETCAPTURE(m->code)][GETPIECE(m->code) >> 1][GETTO(m->code)]) << 16;
+                m->value = ((mvv[GETCAPTURE(m->code) >> 1] - GETPIECE(m->code)) * 4 + capturehistory[GETCAPTURE(m->code)][GETPIECE(m->code) >> 1][GETTO(m->code)]) << 8;
             else 
                 m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];
         }
@@ -949,6 +949,7 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
                 swap(rootmovelist.move[i], rootmovelist.move[j]);
 
         m = &rootmovelist.move[i];
+
 #ifdef SDEBUG
         bool isDebugMove = (debugMove.code == m->code);
         SDEBUGDO(isDebugMove, pvmovenum[0] = i + 1; debugMovePlayed = true;)
