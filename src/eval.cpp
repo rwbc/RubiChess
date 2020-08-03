@@ -740,7 +740,7 @@ int chessposition::getLateEval(positioneval *pe)
     if (queenbb)
     {
         GETLSB(index, queenbb);
-        if (pieceMovesTo <KNIGHT>(index) & attackedBy[You][KNIGHT] & yoursafetargets)
+        if (pieceMovesTo <KNIGHT>(index) & attackedBy[You][KNIGHT] & ~attackedBy[Me][PAWN] & ~(attackedBy2[Me] & ~attackedBy2[You]))
         {
             // eQueenattackpenalty
             result += EVAL(eps.eQueenattackpenalty, S2MSIGN(Me));
