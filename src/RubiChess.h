@@ -339,7 +339,7 @@ struct evalparamset {
     };
     eval ePawnpushthreatbonus =  VALUE(  20,  13);
     eval eSafepawnattackbonus =  VALUE(  66,  25);
-    eval eHangingpiecepenalty =  VALUE( -23, -36);
+    eval eHangingpiecepenalty =  VALUE(   4, -27);
     eval ePassedpawnbonus[4][8] = {
         {  VALUE(   0,   0), VALUE(  10,   4), VALUE(   0,   8), VALUE(  10,  25), VALUE(  35,  46), VALUE(  74,  81), VALUE(  44, 108), VALUE(   0,   0)  },
         {  VALUE(   0,   0), VALUE( -19,  -4), VALUE( -15,  12), VALUE(  -5,  17), VALUE(  17,  34), VALUE(  42,  60), VALUE( -12,  42), VALUE(   0,   0)  },
@@ -414,6 +414,7 @@ struct evalparamset {
     eval eRookonkingarea =  VALUE(   7,  -6);
     eval eBishoponkingarea =  VALUE(  10,   2);
     eval eQueenattackedbysliderpenalty =  VALUE( -30,  17);
+    eval eQueenattackedbyknight = VALUE( -30,  48);
     eval eMinorbehindpawn[6] = {  VALUE(   1,  14), VALUE(  12,  10), VALUE(  15,  11), VALUE(  24,   9), VALUE(  37,  11), VALUE(  89, 110)  };
     eval eSlideronfreefilebonus[2] = {  VALUE(  21,   7), VALUE(  43,   1)  };
     eval eMaterialvalue[7] = {  VALUE(   0,   0), VALUE( 100, 100), VALUE( 314, 314), VALUE( 314, 314), VALUE( 483, 483), VALUE( 913, 913), VALUE(   0,   0)  };

@@ -159,7 +159,7 @@ void registerallevals(chessposition *pos)
 
     registertuner(pos, &eps.ePawnpushthreatbonus, "ePawnpushthreatbonus", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eSafepawnattackbonus, "eSafepawnattackbonus", 0, 0, 0, 0, tuneIt);
-    tuneIt = false;
+    tuneIt = true;
     registertuner(pos, &eps.eHangingpiecepenalty, "eHangingpiecepenalty", 0, 0, 0, 0, tuneIt);
     tuneIt = false;
     for (i = 0; i < 4; i++)
@@ -211,18 +211,20 @@ void registerallevals(chessposition *pos)
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eRookonkingarea, "eRookonkingarea", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishoponkingarea, "eBishoponkingarea", 0, 0, 0, 0, tuneIt);
 
     tuneIt = false;
     registertuner(pos, &eps.eQueenattackedbysliderpenalty, "eQueenattackedbysliderpenalty", 0, 0, 0, 0, tuneIt);
+    tuneIt = true;
+    registertuner(pos, &eps.eQueenattackedbyknight, "eQueenattackedbyknight", 0, 0, 0, 0, tuneIt);
 
     tuneIt = false;
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eMinorbehindpawn[i], "eMinorbehindpawn", i, 6, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 2; i++)
         registertuner(pos, &eps.eSlideronfreefilebonus[i], "eSlideronfreefilebonus", i, 2, 0, 0, tuneIt);
     tuneIt = false;
@@ -588,6 +590,12 @@ int chessposition::getPieceEval(positioneval *pe)
         {
             result += EVAL(eps.eQueenattackedbysliderpenalty, S2MSIGN(Me));
             if (bTrace) te.mobility[Me] += EVAL(eps.eQueenattackedbysliderpenalty, S2MSIGN(Me));
+        }
+
+        if (Pt == QUEEN && (knight_attacks[index] & piece00[WKNIGHT | You]))
+        {
+            result += EVAL(eps.eQueenattackedbyknight, S2MSIGN(Me));
+            if (bTrace) te.mobility[Me] += EVAL(eps.eQueenattackedbyknight, S2MSIGN(Me));
         }
 
         if (Pt == KNIGHT)
