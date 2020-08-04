@@ -889,22 +889,25 @@ int chessposition::rootsearch(int alpha, int beta, int depth, int inWindowLast)
         for (int i = 0; i < rootmovelist.length; i++)
         {
             m = &rootmovelist.move[i];
-            bool badsee = (m->value < BADCAPTUREVAL / 2);
+
+            // Remember the see flag
+            int badsee = m->value & 1;
+            m->value = badsee;
 
             //PV moves gets top score
             if (hashmovecode == (m->code & 0xffff))
-                m->value = PVVAL;
+                m->value |= PVVAL;
             else if (bestFailingLow == m->code)
-                m->value = KILLERVAL2 - 1;
+                m->value |= BESTFAILVAL;
             // killermoves gets score better than non-capture
             else if (killer[0][0] == m->code)
-                m->value = KILLERVAL1;
+                m->value |= KILLERVAL1;
             else if (killer[0][1] == m->code)
-                m->value = KILLERVAL2;
+                m->value |= KILLERVAL2;
             else if (GETCAPTURE(m->code) != BLANK)
-                m->value = (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]) + badsee * BADCAPTUREVAL;
+                m->value |= (mvv[GETCAPTURE(m->code) >> 1] | lva[GETPIECE(m->code) >> 1]) + badsee * BADCAPTUREVAL;
             else 
-                m->value = history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)];
+                m->value |= (history[state & S2MMASK][GETFROM(m->code)][GETCORRECTTO(m->code)] << 1);
         }
     }
 

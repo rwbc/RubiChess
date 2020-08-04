@@ -798,9 +798,9 @@ const int mvv[] = { 0U << 27, 1U << 27, 2U << 27, 2U << 27, 3U << 27, 4U << 27, 
 const int lva[] = { 5 << 24, 4 << 24, 3 << 24, 3 << 24, 2 << 24, 1 << 24, 0 << 24 };
 #define PVVAL (7 << 27)
 #define KILLERVAL1 (1 << 26)
-#define KILLERVAL2 (KILLERVAL1 - 1)
+#define KILLERVAL2 (KILLERVAL1 - 2)
+#define BESTFAILVAL (KILLERVAL2 - 2)
 #define BADCAPTUREVAL (INT_MIN / 2)
-//#define NMREFUTEVAL (1 << 25)
 #define BADTACTICALFLAG (1 << 31)
 
 

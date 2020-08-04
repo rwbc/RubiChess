@@ -561,8 +561,9 @@ void chessposition::getRootMoves()
 
             unplayMove(m);
 
+            m->value &= ~1;
             if (!see(m->code, 0))
-                m->value += BADCAPTUREVAL;
+                m->value |= 1;
             rootmovelist.move[rootmovelist.length++] = *m;
             if (bestval < m->value)
             {
