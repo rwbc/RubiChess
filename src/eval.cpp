@@ -208,10 +208,13 @@ void registerallevals(chessposition *pos)
         for (j = 0; j < 28; j++)
             registertuner(pos, &eps.eMobilitybonus[i][j], "eMobilitybonus", j, 28, i, 4, tuneIt && (j < maxmobility[i]));
 
+    tuneIt = true;
+    registertuner(pos, &eps.eRooksconnected, "eRooksconnected", 0, 0, 0, 0, tuneIt);
+
     tuneIt = false;
     registertuner(pos, &eps.eRookon7thbonus, "eRookon7thbonus", 0, 0, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     registertuner(pos, &eps.eRookonkingarea, "eRookonkingarea", 0, 0, 0, 0, tuneIt);
     registertuner(pos, &eps.eBishoponkingarea, "eBishoponkingarea", 0, 0, 0, 0, tuneIt);
 
@@ -222,7 +225,7 @@ void registerallevals(chessposition *pos)
     for (i = 0; i < 6; i++)
         registertuner(pos, &eps.eMinorbehindpawn[i], "eMinorbehindpawn", i, 6, 0, 0, tuneIt);
 
-    tuneIt = true;
+    tuneIt = false;
     for (i = 0; i < 2; i++)
         registertuner(pos, &eps.eSlideronfreefilebonus[i], "eSlideronfreefilebonus", i, 2, 0, 0, tuneIt);
     tuneIt = false;
@@ -547,16 +550,22 @@ int chessposition::getPieceEval(positioneval *pe)
             U64 xrayrookoccupied = occupied ^ (piece00[WROOK + Me] | piece00[WQUEEN + Me]);
             attack = ROOKATTACKS(xrayrookoccupied, index);
 
-            // extrabonus for rook on (semi-)open file  
+            // bonus for rook on (semi-)open file  
             if (Pt == ROOK && (pe->phentry->semiopen[Me] & BITSET(FILE(index)))) {
                 result += EVAL(eps.eSlideronfreefilebonus[bool(pe->phentry->semiopen[You] & BITSET(FILE(index)))], S2MSIGN(Me));
                 if (bTrace) te.rooks[Me] += EVAL(eps.eSlideronfreefilebonus[bool(pe->phentry->semiopen[You] & BITSET(FILE(index)))], S2MSIGN(Me));
             }
 
-            // extrabonus for rook targeting the kingdanger area
+            // bonus for rook targeting the kingdanger area
             if (Pt == ROOK && (fileMask[index] & kingdangerarea)) {
                 result += EVAL(eps.eRookonkingarea, S2MSIGN(Me));
                 if (bTrace) te.rooks[Me] += EVAL(eps.eRookonkingarea, S2MSIGN(Me));
+            }
+
+            // bonus for rooks connected on same file
+            if (Pt == ROOK && (piece00[WROOK + Me] & filebarrierMask[index][Me] & ROOKATTACKS(occupied, index))) {
+                result += EVAL(eps.eRooksconnected, S2MSIGN(Me));
+                if (bTrace) te.rooks[Me] += EVAL(eps.eRooksconnected, S2MSIGN(Me));
             }
         }
 
